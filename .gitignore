@@ -6,6 +6,7 @@ log.log
 *.pyc
 *.vsix
 envVars.txt
+./vscode/
 **/.vscode/.ropeproject/**
 **/testFiles/**/.cache/**
 *.noseids
