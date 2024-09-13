@@ -11,19 +11,26 @@ from .constants import (
     MINOR_NAMES,
 )
 import re
+from symusic import Score
 
 
 @dataclass
 class TimeSignature:
-    numerator: int
-    denominator: int
-    time: int
+    numerator: int = 4
+    denominator: int = 4
+    time: int = 0
+
+    def from_symusic(self, time_signature):
+        self.numerator = time_signature.numerator
+        self.denominator = time_signature.denominator
+        self.time = time_signature.time
+        return self
 
 
 @dataclass
 class KeySignature:
-    key_name: str
-    time: int
+    key_name: str = "C"
+    time: int = 0
 
     def __post_init__(self):
         if self.time < 0:
@@ -35,11 +42,20 @@ class KeySignature:
                 f"{self.key_number} is not a valid `key_number` type or value"
             )
 
-    
+    def from_symusic(self, key_signature):
+        pass
+        return self
+
+
 @dataclass
 class TempoChange:
-    tempo: float | int
-    time: int
+    tempo: float | int = 0
+    time: int = 0
+
+    def from_symusic(self, tempo_change):
+        self.tempo = tempo_change.qpm
+        self.time = tempo_change.time
+        return self
 
 
 @dataclass
@@ -56,10 +72,10 @@ class Note:
     velocity: int
     start: int
     end: int
-    
+
     def to_immutable(self):
         return (self.pitch, self.velocity, self.start, self.end)
-    
+
     def __hash__(self):
         # Use the values that are considered in equality comparison
         return hash((self.pitch, self.velocity, self.start, self.end))
@@ -68,7 +84,7 @@ class Note:
 class Instrument:
     def __init__(
         self,
-        program: int,
+        program: int = 0,
         channel: int = 0,
         name: str = "",
         notes: list[Note] | None = None,
@@ -122,6 +138,20 @@ class Instrument:
         # find the corresponding instrument of program
         self.notes.append(Note(pitch, velocity, start, end))
 
+    def from_symusic(self, track):
+        self.program = track.program
+        self.name = track.name
+        self.notes = [
+            Note(
+                pitch=note.pitch,
+                velocity=note.velocity,
+                start=note.start,
+                end=note.start + note.duration,
+            )
+            for note in track.notes
+        ]
+        return self
+
 
 # class MetaMessage:
 
@@ -158,6 +188,21 @@ class SymMusicContainer:
 
     def __repr__(self):
         return self.__str__()
+
+    def from_symusic(self, score: Score):
+        self.tick_per_beat = score.ticks_per_quarter
+        self.max_tick = score.end()
+        self.tempo_changes = [
+            TempoChange().from_symusic(tempo) for tempo in score.tempos
+        ]
+        self.key_signature_changes = [
+            KeySignature().from_symusic(key) for key in score.key_signatures
+        ]
+        self.time_signature_changes = [
+            TimeSignature().from_symusic(time) for time in score.time_signatures
+        ]
+        self.instruments = [Instrument().from_symusic(track) for track in score.tracks]
+        return self
 
 
 def _key_name_to_key_number(key_string: str) -> int:

@@ -14,6 +14,8 @@ from .container import (
     Marker,
 )
 from .constants import MAX_CHANNELS, DEFAULT_BPM, KEY_NUMBER_TO_MIDO_KEY_NAME
+from symusic import Score
+
 
 # We "hack" mido's Note_on messages checks to allow to add an "end" attribute, that
 # will serve us to sort the messages in the good order when writing a MIDI file.
@@ -26,8 +28,10 @@ class MidiParser:
     def __init__(
         self,
         file_path: Path | str | None = None,
+        use_symusic: bool = False,
     ):
         # for parsing
+        self.use_symusic = use_symusic
         self.init_parser()
         if file_path:
             self.sym_music_container = self.parse(file_path)
@@ -40,7 +44,7 @@ class MidiParser:
 
         self.sym_music_container = SymMusicContainer()
 
-    def parse(self, file_path: str) -> List[mido.Message]:
+    def parse(self, file_path: str) -> SymMusicContainer:
         """
         Reads a MIDI file and returns the messages.
 
@@ -50,9 +54,19 @@ class MidiParser:
         Returns:
             List[mido.Message]: A list of MIDI messages.
         """
-        # try:
-        if 
         self.init_parser()
+        # try:
+        if self.use_symusic:
+            return self.parse_symusic(file_path)
+        else:
+            return self.parse_mido(file_path)
+
+    def parse_symusic(self, file_path: str) -> SymMusicContainer:
+        score = Score(file_path)
+        self.sym_music_container.from_symusic(score)
+        return self.sym_music_container
+
+    def parse_mido(self, file_path: str) -> SymMusicContainer:
         self.mido_obj = mido.MidiFile(file_path)
         self.sym_music_container.ticks_per_beat = self.mido_obj.ticks_per_beat
         self.process_mido_messages()
@@ -96,7 +110,7 @@ class MidiParser:
                         self.sym_music_container.markers.append(event)
 
             if instrument and note_events:
-                instrument.notes = note_events
+                instrument.notes = sorted(note_events, key=lambda x: x.start)
                 self.sym_music_container.instruments.append(instrument)
                 self.sym_music_container.max_tick = max(
                     self.sym_music_container.max_tick,

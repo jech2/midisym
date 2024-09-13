@@ -1,10 +1,14 @@
 from midisym.parser.container import Instrument, SymMusicContainer, Note
-def is_same_inst(inst1: Instrument, inst2: Instrument, overlap_thres: float = 0.9) -> bool:
+
+
+def is_same_inst(
+    inst1: Instrument, inst2: Instrument, overlap_thres: float = 0.9
+) -> bool:
     """check if two instruments are the same (considering the overlap notes)
 
     Args:
         inst1 (Instrument): compared instrument
-        inst2 (Instrument): compared instrument 
+        inst2 (Instrument): compared instrument
         overlap_thres (float, optional): percentage of overlap that decides the same instrument. Defaults to 0.9.
 
     Returns:
@@ -14,15 +18,22 @@ def is_same_inst(inst1: Instrument, inst2: Instrument, overlap_thres: float = 0.
         inst1_notes_set = set(inst1.notes)
         inst2_notes_set = set(inst2.notes)
         inst1_inst2_inter = inst1_notes_set.intersection(inst2_notes_set)
-        n_percentage_inter = len(inst1_inst2_inter) / min(len(inst2_notes_set), len(inst1_notes_set))
+        n_percentage_inter = len(inst1_inst2_inter) / min(
+            len(inst2_notes_set), len(inst1_notes_set)
+        )
         # print(n_percentage_inter)
-        if n_percentage_inter > overlap_thres: 
+        if n_percentage_inter > overlap_thres:
             return True
     else:
         return False
-    return False 
+    return False
 
-def find_matching_inst(sym_music_obj1: SymMusicContainer, sym_music_obj2: SymMusicContainer, overlap_thres: float = 0.9) -> list[Instrument]:
+
+def find_matching_inst(
+    sym_music_obj1: SymMusicContainer,
+    sym_music_obj2: SymMusicContainer,
+    overlap_thres: float = 0.9,
+) -> list[Instrument]:
     """find matching instruments between two symbolic music objects
 
     Args:
@@ -44,6 +55,7 @@ def find_matching_inst(sym_music_obj1: SymMusicContainer, sym_music_obj2: SymMus
                 break
     return matching_inst
 
+
 def check_exact_match_note_rate_fn(midi_infilling_fn, midi_ori_fn, midi_inpainted_fn):
     from midisym.parser.midi import MidiParser
 
@@ -52,118 +64,155 @@ def check_exact_match_note_rate_fn(midi_infilling_fn, midi_ori_fn, midi_inpainte
     midi_obj_infilling = parser.parse(midi_infilling_fn)
     midi_obj_ori = parser.parse(midi_ori_fn)
     midi_obj_inpainted = parser.parse(midi_inpainted_fn)
-    
+
     # print(midi_obj_infilling.num_instruments)
     # print(midi_obj_ori.num_instruments)
     # print(midi_obj_inpainted.num_instruments)
-    
-    return check_exact_match_note_rate_sym_obj(midi_obj_infilling, midi_obj_ori, midi_obj_inpainted)
-    
 
-def check_exact_match_note_rate_sym_obj(midi_obj_infilling: SymMusicContainer, midi_obj_ori: SymMusicContainer, midi_obj_inpainted: SymMusicContainer) -> dict:
+    return check_exact_match_note_rate_sym_obj(
+        midi_obj_infilling, midi_obj_ori, midi_obj_inpainted
+    )
+
+
+def check_exact_match_note_rate_sym_obj(
+    midi_obj_infilling: SymMusicContainer,
+    midi_obj_ori: SymMusicContainer,
+    midi_obj_inpainted: SymMusicContainer,
+) -> dict:
     from midisym.analysis.utils import find_matching_inst
+
     overlap_thres = 0.1
     matching_inst = find_matching_inst(midi_obj_infilling, midi_obj_ori, overlap_thres)
-    matching_inst_2 = find_matching_inst(midi_obj_infilling, midi_obj_inpainted, overlap_thres)
+    matching_inst_2 = find_matching_inst(
+        midi_obj_infilling, midi_obj_inpainted, overlap_thres
+    )
     # print(matching_inst)
     # print('----')
     # print(matching_inst_2)
-    
+
     # assert len(matching_inst) == min(midi_obj_infilling.num_instruments, midi_obj_ori.num_instruments)
     # assert len(matching_inst_2) == min(midi_obj_infilling.num_instruments, midi_obj_inpainted.num_instruments)
-    
+
     exact_match_rates = []
     # print('original - infilling')
     for (i, j), (_, k) in zip(matching_inst, matching_inst_2):
-        diff_notes = set(midi_obj_ori.instruments[j].notes) - set(midi_obj_infilling.instruments[i].notes)
+        diff_notes = set(midi_obj_ori.instruments[j].notes) - set(
+            midi_obj_infilling.instruments[i].notes
+        )
         # print(len(diff_notes), '/', len(midi_obj_ori.instruments[i].notes))
-        
-        diff_notes2 = set(midi_obj_ori.instruments[j].notes) - set(midi_obj_inpainted.instruments[k].notes)
+
+        diff_notes2 = set(midi_obj_ori.instruments[j].notes) - set(
+            midi_obj_inpainted.instruments[k].notes
+        )
         # print(len(diff_notes2), '/', len(midi_obj_ori.instruments[j].notes))
 
         inter_origin_inpaint = diff_notes.intersection(diff_notes2)
         # print(len(inter_origin_inpaint), '/', len(diff_notes), len(inter_origin_inpaint) / len(diff_notes))
         # print(len(inter_origin_inpaint), '/', len(diff_notes2), len(inter_origin_inpaint) / len(diff_notes2))
-        exact_match_rate1 = len(inter_origin_inpaint) / len(diff_notes) if len(diff_notes) > 0 else 0
-        exact_match_rate2 = len(inter_origin_inpaint) / len(diff_notes2) if len(diff_notes2) > 0 else 0
-        
+        exact_match_rate1 = (
+            len(inter_origin_inpaint) / len(diff_notes) if len(diff_notes) > 0 else 0
+        )
+        exact_match_rate2 = (
+            len(inter_origin_inpaint) / len(diff_notes2) if len(diff_notes2) > 0 else 0
+        )
+
         exact_match_rates.append(min(exact_match_rate1, exact_match_rate2))
-    
+
         # print('----')
-        
+
     return {
-        'matching_inst_input_ori': matching_inst,
-        'matching_inst_input_inpainted': matching_inst_2,
-        'exact_match_rates': exact_match_rates
+        "matching_inst_input_ori": matching_inst,
+        "matching_inst_input_inpainted": matching_inst_2,
+        "exact_match_rates": exact_match_rates,
     }
 
-def get_inpainted_pos_notes(sym_music_obj_ori: SymMusicContainer, sym_music_obj_infilling: SymMusicContainer) -> list:
+
+def get_inpainted_pos_notes(
+    sym_music_obj_ori: SymMusicContainer, sym_music_obj_infilling: SymMusicContainer
+) -> list:
     overlap_thres = 0.1
-    matching_inst = find_matching_inst(sym_music_obj_infilling, sym_music_obj_ori, overlap_thres)
-    
+    matching_inst = find_matching_inst(
+        sym_music_obj_infilling, sym_music_obj_ori, overlap_thres
+    )
+
     exact_match_rates = []
     # print('original - infilling')
     notes = []
     for i, j in matching_inst:
-        diff_notes = set(sym_music_obj_ori.instruments[j].notes) - set(sym_music_obj_infilling.instruments[i].notes) 
+        diff_notes = set(sym_music_obj_ori.instruments[j].notes) - set(
+            sym_music_obj_infilling.instruments[i].notes
+        )
         notes.extend(diff_notes)
     return notes
 
-def get_all_notes(sym_music_obj: SymMusicContainer) -> list:
+
+def get_all_notes(sym_music_obj: SymMusicContainer, exclude_drum: bool = True) -> list:
     all_notes = []
     for inst in sym_music_obj.instruments:
-        if inst.is_drum:
+        if exclude_drum and inst.is_drum:
             continue
         all_notes.extend(inst.notes)
-        
+
     all_notes = set(all_notes)
     return all_notes
 
+
 import mir_eval
 import numpy as np
+
 
 def notes_to_intervals_and_pitches(notes: list[Note]) -> tuple[np.ndarray, np.ndarray]:
     intervals = np.array([[note.start, note.end] for note in notes])
     pitches = np.array([note.pitch for note in notes])
     # remove negative intervals
     # 유효한 interval 필터링 (시작 시간이 종료 시간보다 작은 경우)
-    assert intervals.shape == (pitches.shape[0], 2), f"intervals.shape: {intervals.shape}, pitches.shape: {pitches.shape}"
+    assert intervals.shape == (
+        pitches.shape[0],
+        2,
+    ), f"intervals.shape: {intervals.shape}, pitches.shape: {pitches.shape}"
     # 시작 시간이 종료 시간보다 작은 경우만 유지
     valid_intervals_indices = intervals[:, 0] < intervals[:, 1]
     # 음높이가 0보다 큰 경우만 유지
     valid_pitch_indices = pitches > 0
     # 두 조건을 모두 만족하는 인덱스
     valid_indices = valid_intervals_indices & valid_pitch_indices
-    
+
     # 유효한 interval과 pitch 값만 유지
     intervals = intervals[valid_indices]
     pitches = pitches[valid_indices]
-    
+
     return intervals, pitches
 
-def calculate_transcription_measure(ref_notes: list[Note], est_notes: list[Note], offset_tolerance: float) -> dict:
+
+def calculate_transcription_measure(
+    ref_notes: list[Note], est_notes: list[Note], offset_tolerance: float
+) -> dict:
     reference_intervals, reference_pitches = notes_to_intervals_and_pitches(ref_notes)
     estimated_intervals, estimated_pitches = notes_to_intervals_and_pitches(est_notes)
-    
-    pitch_tolerance = 50.0 # 센트 단위
-    
+
+    pitch_tolerance = 50.0  # 센트 단위
+
     metrics = mir_eval.transcription.evaluate(
-        reference_intervals, reference_pitches,
-        estimated_intervals, estimated_pitches,
+        reference_intervals,
+        reference_pitches,
+        estimated_intervals,
+        estimated_pitches,
         onset_tolerance=offset_tolerance,
-        pitch_tolerance=pitch_tolerance
+        pitch_tolerance=pitch_tolerance,
     )
-    
+
     # 메트릭 값을 소수점 이하 3자리로 반올림
     rounded_metrics = round_metrics(metrics, decimals=3)
-    
+
     return rounded_metrics
+
 
 def round_metrics(metrics: dict, decimals: int = 3) -> dict:
     """
     metrics 딕셔너리의 값을 소수점 아래 `decimals` 자리로 반올림합니다.
     """
     return {key: round(value, decimals) for key, value in metrics.items()}
+
 
 def time_to_ticks(time_seconds: float, ticks_per_beat: int, bpm: float) -> int:
     # 초당 tick 수(TPS) 계산
@@ -173,20 +222,24 @@ def time_to_ticks(time_seconds: float, ticks_per_beat: int, bpm: float) -> int:
     return int(round(ticks))
 
 
-def calculate_mir_eval_match_note_measure(ref_notes: list[Note], est_notes: list[Note], offset_tolerance: float) -> dict:
+def calculate_mir_eval_match_note_measure(
+    ref_notes: list[Note], est_notes: list[Note], offset_tolerance: float
+) -> dict:
     reference_intervals, reference_pitches = notes_to_intervals_and_pitches(ref_notes)
     estimated_intervals, estimated_pitches = notes_to_intervals_and_pitches(est_notes)
-    
-    pitch_tolerance = 50.0 # 센트 단위
-    
+
+    pitch_tolerance = 50.0  # 센트 단위
+
     metrics = mir_eval.transcription.match_notes(
-        reference_intervals, reference_pitches,
-        estimated_intervals, estimated_pitches,
+        reference_intervals,
+        reference_pitches,
+        estimated_intervals,
+        estimated_pitches,
         onset_tolerance=offset_tolerance,
-        pitch_tolerance=pitch_tolerance
+        pitch_tolerance=pitch_tolerance,
     )
-    
+
     # 메트릭 값을 소수점 이하 3자리로 반올림
     rounded_metrics = round_metrics(metrics, decimals=3)
-    
+
     return rounded_metrics
