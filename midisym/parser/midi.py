@@ -29,12 +29,15 @@ class MidiParser:
         self,
         file_path: Path | str | None = None,
         use_symusic: bool = False,
+        sym_music_container: SymMusicContainer | None = None,
     ):
         # for parsing
         self.use_symusic = use_symusic
         self.init_parser()
         if file_path:
             self.sym_music_container = self.parse(file_path)
+        elif sym_music_container:
+            self.sym_music_container = sym_music_container
 
     def init_parser(self):
         self._current_instrument_name = ""

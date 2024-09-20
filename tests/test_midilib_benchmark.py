@@ -66,3 +66,14 @@ def test_benchmark_miditoolkit(benchmark):
 
 def test_benchmark_pretty_midi(benchmark):
     benchmark(call_pretty_midi)
+
+
+def call_partitura():
+    import partitura
+
+    file_path = "tests/sample/multi-instrumental.mid"
+    partitura_obj = partitura.load_score_midi(file_path)
+
+
+def test_benchmark_partitura(benchmark):
+    benchmark(call_partitura)

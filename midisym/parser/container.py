@@ -140,6 +140,7 @@ class Instrument:
 
     def from_symusic(self, track):
         self.program = track.program
+        self.is_drum = track.is_drum
         self.name = track.name
         self.notes = [
             Note(
