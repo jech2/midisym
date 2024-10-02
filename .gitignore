@@ -50,3 +50,7 @@ dist/**
 package.nls.*.json
 l10n/
 python-env-tools/**
+
+*.so
+tests/*/*.png
+*.wav

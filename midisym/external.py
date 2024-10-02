@@ -1,12 +1,17 @@
 # source code from muspy: https://muspy.readthedocs.io/en/stable/_modules/muspy/external.html#download_musescore_soundfont
 import urllib.request
 from pathlib import Path
+from midisym.parser.midi import MidiParser
 
 __all__ = [
     "download_musescore_soundfont",
     "get_musescore_soundfont_dir",
     "get_musescore_soundfont_path",
+    "read_midi",
 ]
+
+def read_midi(midi_path: str, **kwargs) -> MidiParser:
+    return MidiParser(midi_path, **kwargs)
 
 
 def get_musescore_soundfont_dir() -> Path:

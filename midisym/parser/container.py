@@ -3,7 +3,7 @@
 """
 
 from dataclasses import dataclass
-from .constants import (
+from ..constants import (
     DEFAULT_BPM,
     DEFAULT_TICKS_PER_BEAT,
     DRUM_CHANNEL,
@@ -203,6 +203,9 @@ class SymMusicContainer:
             TimeSignature().from_symusic(time) for time in score.time_signatures
         ]
         self.instruments = [Instrument().from_symusic(track) for track in score.tracks]
+        self.markers = [Marker(marker.text, marker.time) for marker in score.markers]
+        
+        print('from_symusic, currently key signature is not supported')
         return self
 
 

@@ -1,5 +1,5 @@
 from ..parser.container import Instrument, SymMusicContainer, Note
-
+import numpy as np 
 
 def is_same_inst(
     inst1: Instrument, inst2: Instrument, overlap_thres: float = 0.9
@@ -167,9 +167,48 @@ def time_to_ticks(time_seconds: float, ticks_per_beat: int, bpm: float) -> int:
     return int(round(ticks))
 
 
+def time_to_ticks_perf_midi(
+    note: Note, time_seconds: float, ticks_per_beat: int, tempo_changes: list
+) -> int:
+    # find the nearest TempoChange event before the note
+    tempo_change = None
+    for tc in tempo_changes:
+        if tc.time >= note.start:
+            break
+        tempo_change = tc
+
+    if tempo_change is None:
+        return time_to_ticks(time_seconds, ticks_per_beat, 120)
+    else:
+        cur_tempo = tempo_change.tempo
+        seconds_per_beat = float(60) / float(cur_tempo)
+        seconds_per_tick = seconds_per_beat / float(ticks_per_beat)
+        time_seconds_as_tick = time_seconds / seconds_per_tick
+        return int(round(time_seconds_as_tick))
+
+
+def ticks_to_time(ticks: int, ticks_per_beat: int, bpm: float) -> float:
+    # 초당 tick 수(TPS) 계산
+    ticks_per_second = (ticks_per_beat * bpm) / 60
+    # tick을 시간(초)으로 변환
+    time_seconds = ticks / ticks_per_second
+    return time_seconds
+
+
 def is_monophonic(notes: list[Note]) -> bool:
     notes.sort(key=lambda x: x.start)
     for i in range(len(notes) - 1):
         if notes[i].end > notes[i + 1].start:
             return False
     return True
+
+def get_all_marker_start_end_time(sym_obj: SymMusicContainer, grid: np.array) -> list[tuple]:
+    # get all marker start and end
+    all_markers = []
+    for i, marker in enumerate(sym_obj.markers[:-1]):
+        all_markers.append((marker.text, marker.time, sym_obj.markers[i+1].time))    
+    # last marker
+    if sym_obj.markers[-1].time < grid[-1]:
+        all_markers.append((marker.text, sym_obj.markers[-1].time, grid[-1]))
+
+    return all_markers

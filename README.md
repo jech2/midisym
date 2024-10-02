@@ -1,8 +1,7 @@
 # MIDISym
-This is a simple Python library that reads MIDI files using the `mido` library.
+MIDISym is a Python library that reads, analyses, converts any symbolic music formats (MIDI, XML, ...) into MIR-friendly format. It supports the conversion of representations such as matrix, tokens, and even graphs. It supports MIDI-level analysis such as melody extraction(skyline algorithm), feature extractions such as pitch class, pitch octave, durations. It also contains exporting features such as wav rendering.
 
 ## Installation
-
 ```bash
 pip install midisym
 

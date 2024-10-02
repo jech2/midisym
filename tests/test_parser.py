@@ -112,7 +112,8 @@ def test_note_2():
 def test_symusiccontainer_from_symusic():
     from midisym.parser.midi import MidiParser
 
-    file_path = "tests/sample/multi-instrumental.mid"
+    # file_path = "tests/sample/multi-instrumental.mid"
+    file_path = "./tests/sample/pop909_001_including_chord_marker.mid"
     midi_parser = MidiParser(file_path)
     sym_obj = midi_parser.sym_music_container
 
@@ -123,4 +124,7 @@ def test_symusiccontainer_from_symusic():
 
     assert sym_obj.tempo_changes == sym_obj2.tempo_changes
     assert sym_obj.time_signature_changes == sym_obj2.time_signature_changes
+    assert sym_obj.markers == sym_obj2.markers
+    print(sym_obj.markers)
+    print(sym_obj2.markers)
     # TODO:: key_signature_changes

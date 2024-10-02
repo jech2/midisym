@@ -5,7 +5,11 @@ import pandas as pd
 import midisym.csamplers as csamplers
 
 
-def get_edges(sym_music_container: SymMusicContainer, exclude_drum: bool = True):
+def get_edges(
+    sym_music_container: SymMusicContainer,
+    exclude_drum: bool = True,
+    window_size: float = 0.0,  # in seconds
+):
 
     edg_src = []
     edg_dst = []
@@ -17,14 +21,23 @@ def get_edges(sym_music_container: SymMusicContainer, exclude_drum: bool = True)
     for i, note in enumerate(all_notes):
         # nbs = neighbors
         for j, nb in enumerate(all_notes):
+            # convert seconds to ticks
+            from midisym.analysis.utils import time_to_ticks_perf_midi
+
+            window_size_tick = time_to_ticks_perf_midi(
+                note,
+                window_size,
+                sym_music_container.ticks_per_beat,
+                sym_music_container.tempo_changes,
+            )
             # if i == j:
             #     continue
-            if note.start == nb.start:
+            if abs(note.start - nb.start) <= window_size_tick:
                 # print(f"Note {i} and {j} have the same onset")
                 edg_src.append(i)
                 edg_dst.append(j)
                 edg_type.append("onset")
-            if note.start == nb.end:
+            if abs(note.start - nb.end) <= window_size_tick:
                 # print(f"Note {i} and {j} have the consecutive onset offset")
                 edg_src.append(i)
                 edg_dst.append(j)
@@ -40,9 +53,10 @@ def get_edges(sym_music_container: SymMusicContainer, exclude_drum: bool = True)
         # edg_dst.extend([i] * 3)
         # edg_type.extend(["onset", "sustain"])
 
-    edges = np.array([edg_src, edg_dst, edg_type])
-
-    return edges
+    edges = np.array([edg_src, edg_dst])
+    edge_etypes = {"onset": 0, "consecutive": 1, "sustain": 2}
+    edge_types = np.array([edge_etypes[x] for x in edg_type])
+    return edges, edge_types
 
 
 # ref from the symbolic music graph classification paper, which seems to be slower due to using pandas
@@ -94,9 +108,10 @@ def get_edges_np(sym_music_container: SymMusicContainer, exclude_drum: bool = Tr
             + ["sustain"] * len(sustain_nbs)
         )
 
-    edges = np.array([edg_src, edg_dst, edg_type])
-
-    return edges
+    edges = np.array([edg_src, edg_dst])
+    edge_etypes = {"onset": 0, "consecutive": 1, "sustain": 2}
+    edge_types = np.array([edge_etypes[x] for x in edg_type])
+    return edges, edge_types
 
 
 def edges_from_note_array(note_array):
@@ -153,7 +168,8 @@ def edges_from_note_array(note_array):
                     edge_type.append(3)
 
     edges = np.array([edg_src, edg_dst])
-    edge_types = np.array(edge_type)
+    edge_etypes = {0: "onset", 1: "consecutive", 2: "sustain"}
+    edge_types = np.array([edge_etypes[x] for x in edge_type])
     return edges, edge_types
 
 

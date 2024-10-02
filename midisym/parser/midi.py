@@ -3,6 +3,7 @@ import mido
 from typing import List
 from pathlib import Path
 import functools
+import numpy as np
 
 from .container import (
     SymMusicContainer,
@@ -13,7 +14,7 @@ from .container import (
     TempoChange,
     Marker,
 )
-from .constants import MAX_CHANNELS, DEFAULT_BPM, KEY_NUMBER_TO_MIDO_KEY_NAME
+from ..constants import MAX_CHANNELS, DEFAULT_BPM, KEY_NUMBER_TO_MIDO_KEY_NAME
 from symusic import Score
 
 
@@ -463,3 +464,36 @@ class MidiParser:
             midi_parsed.save(filename=filename)
         else:
             midi_parsed.save(file=file)
+
+    def get_tick_to_time_mapping(self) -> np.ndarray:
+        return _get_tick_to_second_mapping(
+            self.ticks_per_beat, self.max_tick, self.tempo_changes
+        )
+
+    def _get_tick_to_second_mapping(
+        ticks_per_beat: int, max_tick: int, tempo_changes: list[TempoChange]
+    ) -> np.ndarray:
+        tick_to_time = np.zeros(max_tick + 1)
+        num_tempi = len(tempo_changes)
+        acc_time = 0
+
+        for idx in range(num_tempi):
+            start_tick = tempo_changes[idx].time
+            cur_tempo = tempo_changes[idx].tempo
+
+            # compute tick scale
+            seconds_per_beat = 60 / cur_tempo
+            seconds_per_tick = seconds_per_beat / float(ticks_per_beat)
+
+            # set end tick of interval
+            end_tick = (
+                tempo_changes[idx + 1].time if (idx + 1) < num_tempi else max_tick
+            )
+
+            # write interval
+            ticks = np.arange(end_tick - start_tick + 1)
+            tick_to_time[start_tick : end_tick + 1] = (
+                acc_time + seconds_per_tick * ticks
+            )
+            acc_time = tick_to_time[end_tick]
+        return tick_to_time
