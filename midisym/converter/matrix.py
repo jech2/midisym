@@ -6,7 +6,7 @@ from midisym.analysis.grid_quantize import (
 from midisym.analysis.utils import get_all_marker_start_end_time
 from midisym.analysis.chord.chord_event import chord_name_to_chroma
 
-from midisym.constants import PITCH_ID_TO_NAME, PITCH_RANGE, MIDI_MAX
+from midisym.constants import PITCH_ID_TO_NAME, PITCH_RANGE, MIDI_MAX, MELODY, BRIDGE, PIANO
 from collections import Counter
 
 
@@ -24,12 +24,15 @@ def sym_to_pr_mat(sym_obj: SymMusicContainer, sym_data_type="analyzed performanc
 def make_grid_quantized_note_prmat(sym_obj: SymMusicContainer, 
                                    grid: np.array, 
                                    value: str = 'duration', 
-                                   pitch_range: tuple[int, int] = PITCH_RANGE):
+                                   pitch_range: tuple[int, int] = PITCH_RANGE, inst_ids = [MELODY, BRIDGE, PIANO]):
     # grid 인덱스에 맞는 note에 대해 pr_mat에 등록
     
     min_pitch, max_pitch = pitch_range
     pr_mat = np.zeros((len(grid), MIDI_MAX), dtype=np.int64)
-    for inst in sym_obj.instruments:
+    for inst_idx, inst in enumerate(sym_obj.instruments):
+        if inst_idx not in inst_ids:
+            continue
+        
         for note in inst.notes:
             try:
                 start_idx = np.where(grid == note.start)[0][0]
@@ -68,9 +71,9 @@ def make_grid_quantized_chord_prmat(sym_obj: SymMusicContainer, grid: np.array):
     return chord_pr_mat
         
 def get_onset_matrix(
-    sym_obj: SymMusicContainer, grid: np.array, consider_n_voice: bool = False
+    sym_obj: SymMusicContainer, grid: np.array, consider_n_voice: bool = False, inst_ids = [MELODY, BRIDGE, PIANO]
 ):
-    pr_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='duration')
+    pr_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='duration', inst_ids=inst_ids)
     onset_mat = np.zeros(pr_mat.shape[0], dtype=np.int64)
     for i in range(pr_mat.shape[0]):
         if consider_n_voice:

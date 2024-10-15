@@ -1,0 +1,103 @@
+from midisym.analysis.grid_quantize import (
+    make_grid_quantized_notes,
+)
+import numpy as np
+from midisym.parser.container import TempoChange, Marker, Note
+
+def test_make_sequence(const_tempo_piano_chord_midi_parser):
+    sym_obj = const_tempo_piano_chord_midi_parser.sym_music_container
+    sym_data_type = "constant tempo MIDI"
+    
+
+    all_event_seq = []
+    prev_bar = -1
+    
+    from midisym.converter.sequence.vocabulary import REMILikeCNE
+    vocab = REMILikeCNE()
+    
+    # all_event_seq = vocab.tokenize(sym_obj, sym_data_type, chord_style='pop909')
+            
+    # print(all_event_seq)
+
+def test_c_and_e_vocabulary():
+    import pickle
+    with open('../PianoArrangement/Compose_and_Embellish/stage02_embellish/vocab/skyline2midi_vocab.pkl', 'rb') as f:
+        vocab = pickle.load(f)
+        
+    _vocab = vocab[0]
+    
+    # for key, value in _vocab.items():
+    #     print(key, value)
+    
+    from midisym.converter.sequence.vocabulary import REMILikeCNE, find_nearest_bin
+    vocab = REMILikeCNE().vocab
+    
+    # save txt and check the diff
+    with open('skyline2midi_vocab.txt', 'w') as f:
+        for key, value in _vocab.items():
+            f.write(f'{key} {value}\n')
+    
+    with open('test_vocab.txt', 'w') as f:
+        for key, value in vocab.items():
+            f.write(f'{key} {value}\n')
+
+    assert vocab == _vocab
+
+def test_tokenization_analyzed(analyzed_performance_midi_parser):
+    sym_obj = analyzed_performance_midi_parser.sym_music_container
+    sym_data_type = "analyzed performance MIDI"
+    
+    from midisym.converter.sequence.vocabulary import REMILikeCNE
+    vocab = REMILikeCNE()
+    
+    q_sym_obj, grid = make_grid_quantized_notes(
+    sym_obj=sym_obj,
+    sym_data_type=sym_data_type,
+    )
+
+    from midisym.parser.midi import MidiParser
+    new_parser = MidiParser(sym_music_container=q_sym_obj)
+    new_parser.dump('test_out.mid')
+    for inst in q_sym_obj.instruments:
+        print(len(inst.notes))
+        for note in inst.notes:
+            print(note)
+        
+        break
+    
+    for marker in q_sym_obj.markers:
+        print(marker)
+
+    print(q_sym_obj.ticks_per_beat)
+
+    melody_events = vocab.make_inst_events(q_sym_obj, grid, 1, use_tempo_changes=False) # assume melody is 1
+    arrangement_events = vocab.make_inst_events(q_sym_obj, grid, 0, use_tempo_changes=True) # assume arrangement is 0
+    
+    print(len(melody_events) // 16)
+    
+    print(melody_events)
+    
+    tokenized_melody, melody_bar_idxs = vocab.tokenize_inst_events(melody_events, 0, chord_style='chorder')
+    tokenized_arrangement, arrangement_bar_idxs = vocab.tokenize_inst_events(arrangement_events, 1, chord_style='chorder')
+    
+    
+    
+    word_melody = [vocab.idx_to_token(tok) for tok in tokenized_melody]
+    word_arrangement = [vocab.idx_to_token(tok) for tok in tokenized_arrangement]
+    print('-------')
+    sym_obj = vocab.word_to_sym_obj(word_arrangement)
+    for inst in sym_obj.instruments:
+        print(len(inst.notes))
+        for note in inst.notes:
+            print(note)
+        
+        break
+    
+    for marker in sym_obj.markers:
+        print(marker)
+    
+    print(sym_obj.ticks_per_beat)
+    
+    vocab.word_to_midi(word_melody, out_fp='test_melody_out.mid')
+    vocab.word_to_midi(word_arrangement, out_fp='test_arrangement_out.mid')
+    

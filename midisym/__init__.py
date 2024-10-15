@@ -1,4 +1,7 @@
-from . import csamplers
 
-from . import mymodule
-from . import mymodule2
+
+def c_init():
+    from . import csamplers
+
+    from . import mymodule
+    from . import mymodule2

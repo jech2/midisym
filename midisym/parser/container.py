@@ -160,8 +160,8 @@ class Instrument:
 class SymMusicContainer:
     """baseclass for symbolic music container"""
 
-    def __init__(self):
-        self.ticks_per_beat = DEFAULT_TICKS_PER_BEAT
+    def __init__(self, ticks_per_beat: int = DEFAULT_TICKS_PER_BEAT):
+        self.ticks_per_beat = ticks_per_beat
         self.max_tick = 0
         self.tempo_changes = [TempoChange(DEFAULT_BPM, 0)]
         self.time_signature_changes = []

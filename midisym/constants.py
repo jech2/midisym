@@ -48,6 +48,27 @@ PITCH_ID_TO_NAME = {
     11: "B",
 }
 
+PITCH_NAME_TO_ID = {
+    "C": 0,
+    "C#": 1,
+    "Db": 1,
+    "D": 2,
+    "D#": 3,
+    "Eb": 3,
+    "E": 4,
+    "F": 5,
+    "F#": 6,
+    "Gb": 6,
+    "G": 7,
+    "G#": 8,
+    "Ab": 8,
+    "A": 9,
+    "A#": 10,
+    "Bb": 10,
+    "B": 11,
+    "N": "N",
+}
+
 MAJOR_NAMES = ["M", "Maj", "Major", "maj", "major"]
 MINOR_NAMES = ["m", "Min", "Minor", "min", "minor"]
 

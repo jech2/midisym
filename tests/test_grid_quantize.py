@@ -149,7 +149,7 @@ def test_const_tempo_piano_chord_midi(const_tempo_piano_chord_midi_parser):
 
     visualize_pr_mat(pr_mat[0].squeeze(), "tests/sample/onset_pr_mat.png", pitch_range=pitch_range)
     
-    pr_mat2 = make_grid_quantized_note_prmat(q_sym_obj, grid, value='frame_velocity', pitch_range=pitch_range)
+    pr_mat2 = make_grid_quantized_note_prmat(q_sym_obj, grid, value='frame_velocity', pitch_range=pitch_range, inst_ids=[2])
     pr_mat2 = pr_mat2.reshape((n_bars, -1, n_pitch))
     print(pr_mat2.shape)
     visualize_pr_mat(pr_mat2[0].squeeze(), "tests/sample/frame_velocity_pr_mat.png", pitch_range=pitch_range)

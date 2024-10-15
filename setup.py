@@ -1,36 +1,35 @@
-# setup.py
-from setuptools import setup, find_packages
-
-# setup.py
-from setuptools import setup, Extension
+from setuptools import setup, find_packages, Extension
 import sys
 import numpy
+import os
 
-# 확장 모듈 정의
+# Get the absolute path of the current directory (where setup.py is located)
+module_path = os.path.abspath(os.path.dirname(__file__))
+print(f"Module path: {module_path}")
+# Define the extension modules with absolute paths
 ext_modules = [
     Extension(
-        name="midisym.mymodule",  # 모듈 이름
-        sources=["src/mymodule.c"],  # C 소스 파일
-        include_dirs=[numpy.get_include()],  # NumPy 헤더 포함 (필요 시)
-        extra_compile_args=[],  # 추가 컴파일 옵션
+        name="midisym.mymodule",  # Module name
+        sources=[os.path.join(module_path, "src/mymodule.c")],  # Absolute path to C source file
+        include_dirs=[numpy.get_include()],  # Include NumPy headers if needed
+        extra_compile_args=[],  # Additional compile options
     ),
     Extension(
-        name="midisym.mymodule2",
-        sources=["src/mymodule2.cpp"],
-        include_dirs=[numpy.get_include()],  # Include numpy headers
+        name="midisym.mymodule2",  # C++ module
+        sources=[os.path.join(module_path, "src/mymodule2.cpp")],  # Absolute path to C++ source file
+        include_dirs=[numpy.get_include()],  # Include NumPy headers
         language="c++",  # Specify the language
-        extra_compile_args=[
-            "-std=c++11"
-        ],  # Additional compiler arguments, e.g., C++ standard
+        extra_compile_args=["-std=c++11"],  # Additional compiler arguments, e.g., C++11 standard
     ),
     Extension(
-        name="midisym.csamplers",
-        sources=["src/gmsamplersmodule.c"],
-        extra_link_args=[],
-        include_dirs=[numpy.get_include(), "include"],
+        name="midisym.csamplers",  # Another C module
+        sources=[os.path.join(module_path, "src/gmsamplersmodule.c")],  # Absolute path to C source file
+        extra_link_args=[],  # Additional linker options
+        include_dirs=[numpy.get_include(), os.path.join(module_path, "include")],  # Include directories
     ),
 ]
 
+# Setup function
 setup(
     name="midisym",
     version="0.1.0",
@@ -38,9 +37,10 @@ setup(
     author="Eunjin Choi",
     author_email="jech@kaist.ac.kr",
     url="https://github.com/jech2/midisym",
-    packages=find_packages(),
+    packages=find_packages(),  # Automatically find all packages
     install_requires=[
-        "mido",  # 의존성 라이브러리
+        "mido",  # Dependencies
+        "symusic",
     ],
-    ext_modules=ext_modules,  # 확장 모듈
+    ext_modules=ext_modules,  # Extension modules
 )

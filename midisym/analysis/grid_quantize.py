@@ -58,7 +58,7 @@ def get_grid_from_tempo_changes(
 
 def make_grid_quantized_notes(
     sym_obj: SymMusicContainer,
-    sym_data_type: str = "const tempo MIDI",
+    sym_data_type: str = "constant tempo MIDI",
     quantize_resolution: int = 4,
     time_signature: tuple[int, int] = (4, 4),
     sum_grid: bool = False,
@@ -89,15 +89,15 @@ def make_grid_quantized_notes(
     for inst in sym_obj.instruments:
         new_notes = []
         for note in inst.notes:
-            note.start = min(grid, key=lambda x: abs(x - note.start))
-            note.end = min(grid, key=lambda x: abs(x - note.end))
+            note.start = int(min(grid, key=lambda x: abs(x - note.start)))
+            note.end = int(min(grid, key=lambda x: abs(x - note.end)))
             new_notes.append(note)
         inst.notes = new_notes
     
     # change the chord events into the nearest grid
     new_markers = []
     for marker in sym_obj.markers:
-        marker.time = min(grid, key=lambda x: abs(x - marker.time))
+        marker.time = int(min(grid, key=lambda x: abs(x - marker.time)))
         new_markers.append(marker)
     sym_obj.markers = new_markers
     
