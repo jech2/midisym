@@ -34,6 +34,32 @@ def test_make_grid_quantized_notes(analyzed_performance_midi_parser):
     analyzed_performance_midi_parser.dump("tests/sample/grid_quantized.mid")
 
     pr_mat = make_grid_quantized_note_prmat(sym_obj, grid)
+    
+def test_make_grid_quantized_notes(analyzed_performance_midi_parser):
+    sym_obj = analyzed_performance_midi_parser.sym_music_container
+
+    sym_obj, grid = make_grid_quantized_notes(
+        sym_obj=sym_obj,
+        sym_data_type="analyzed performance MIDI -- grid from ticks",
+    )
+
+    # dump the grid quantized notes
+    analyzed_performance_midi_parser.dump("tests/sample/grid_quantized_ticks.mid")
+
+    # pr_mat = make_grid_quantized_note_prmat(sym_obj, grid)
+
+def test_make_grid_quantized_notes_pop1k7(analyzed_performance_midi_parser_pop1k7):
+    sym_obj = analyzed_performance_midi_parser_pop1k7.sym_music_container
+
+    sym_obj, grid = make_grid_quantized_notes(
+        sym_obj=sym_obj,
+        sym_data_type="analyzed performance MIDI -- grid from ticks",
+    )
+
+    # dump the grid quantized notes
+    analyzed_performance_midi_parser_pop1k7.dump("tests/sample/grid_quantized_pop1k7.mid")
+
+    # pr_mat = make_grid_quantized_note_prmat(sym_obj, grid)
 
 
 def test_sym_to_prmat(analyzed_performance_midi_parser):

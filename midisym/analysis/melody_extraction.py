@@ -88,6 +88,7 @@ def save_extracted_melody(
     output_midi_path: Union[str, Path],
     all_notes: Union[list[Note], None] = None,
     do_write_audio: bool = False,
+    dump_prev_midi: bool = False,
 ):
     sym_music_obj = sym_music_container
     if all_notes is None:
@@ -106,7 +107,10 @@ def save_extracted_melody(
 
     inst.notes = melody_notes
 
-    sym_music_obj_copy.instruments = [inst]
+    if dump_prev_midi:
+        sym_music_obj_copy.instruments.append(inst)
+    else:
+        sym_music_obj_copy.instruments = [inst]
 
     # dump
     new_midi_parser = MidiParser(sym_music_container=sym_music_obj_copy)

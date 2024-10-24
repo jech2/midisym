@@ -81,6 +81,9 @@ def make_grid_quantized_notes(
             grid = np.unique(np.concatenate((grid, grid2)))
         else:    
             grid = get_grid_from_tempo_changes(sym_obj, quantize_resolution=4)
+    elif sym_data_type == "analyzed performance MIDI -- grid from ticks":
+        ticks_per_beat = sym_obj.ticks_per_beat
+        grid = np.arange(0, sym_obj.max_tick, ticks_per_beat // quantize_resolution)
     else:
         raise NotImplementedError(
             f"Currently only constant tempo MIDI and analyzed performance MIDI are supported, got {sym_data_type}"
@@ -89,9 +92,16 @@ def make_grid_quantized_notes(
     for inst in sym_obj.instruments:
         new_notes = []
         for note in inst.notes:
+            # print('before', note.start, note.end)
             note.start = int(min(grid, key=lambda x: abs(x - note.start)))
             note.end = int(min(grid, key=lambda x: abs(x - note.end)))
+            if note.start == note.end:
+                if note.start == grid[-1]:
+                    note.start = grid[-2]
+                else:
+                    note.end = grid[np.where(grid == note.start)[0][0] + 1]
             new_notes.append(note)
+            # print('after', note.start, note.end)
         inst.notes = new_notes
     
     # change the chord events into the nearest grid
@@ -100,5 +110,12 @@ def make_grid_quantized_notes(
         marker.time = int(min(grid, key=lambda x: abs(x - marker.time)))
         new_markers.append(marker)
     sym_obj.markers = new_markers
+    
+    # tempo
+    new_tempo_changes = []
+    for tc in sym_obj.tempo_changes:
+        tc.time = int(min(grid, key=lambda x: abs(x - tc.time)))
+        new_tempo_changes.append(tc)
+    sym_obj.tempo_changes = new_tempo_changes
     
     return sym_obj, grid

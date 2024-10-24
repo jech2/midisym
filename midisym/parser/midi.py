@@ -79,7 +79,7 @@ class MidiParser:
         #     print(f"Error reading MIDI file: {e}")
         #     return None
 
-    def process_mido_messages(self):
+    def process_mido_messages(self, verbose: bool = False):
         """
         Processes MIDI messages.
         """
@@ -114,19 +114,20 @@ class MidiParser:
                         self.sym_music_container.markers.append(event)
 
             if instrument and note_events:
-                instrument.notes = sorted(note_events, key=lambda x: x.start)
+                instrument.notes = sorted(note_events, key=lambda x: (x.start, x.pitch))
                 self.sym_music_container.instruments.append(instrument)
                 self.sym_music_container.max_tick = max(
                     self.sym_music_container.max_tick,
                     max([note.end for note in note_events]),
                 )
 
-        # save messages to a file
-        if not os.path.exists("midi_messages.txt"):
-            with open("midi_messages.txt", "w") as f:
-                for track in self.mido_obj.tracks:
-                    for msg in track:
-                        f.write(f"{msg}\n")
+        if verbose:
+            # save messages to a file
+            if not os.path.exists("midi_messages.txt"):
+                with open("midi_messages.txt", "w") as f:
+                    for track in self.mido_obj.tracks:
+                        for msg in track:
+                            f.write(f"{msg}\n")
 
     def process_one_mido_message(
         self, mido_msg: mido.Message
@@ -166,31 +167,34 @@ class MidiParser:
         elif mido_msg.type == "note_on":
             # if the velocity is 0, it is equivalent to note_off
             if mido_msg.velocity == 0:
-                # find the corresponding note_on from the current_playing_notes
-                note_event = self._current_playing_notes.get(mido_msg.note, None)
+                note_event = self._current_playing_notes.pop(mido_msg.note, None)
                 if note_event:
                     note_event.end = self._update_accum_time(mido_msg.time)
-                    note_event = self._current_playing_notes.pop(mido_msg.note)
                     return note_event
                 else:
                     print(f"No note to turn off: {mido_msg}")
             else:
-                prev_playing_note_event = None
                 if mido_msg.note in self._current_playing_notes:
                     # make the note off event and return the note
                     prev_playing_note_event = self._current_playing_notes.pop(
                         mido_msg.note
                     )
                     prev_playing_note_event.end = self._accum_time + mido_msg.time
-                else:
-                    self._current_playing_notes[mido_msg.note] = Note(
-                        mido_msg.note,
-                        mido_msg.velocity,
-                        self._update_accum_time(mido_msg.time),
-                        None,
-                    )
-                if prev_playing_note_event:
                     return prev_playing_note_event
+                
+                self._current_playing_notes[mido_msg.note] = Note(
+                    mido_msg.note,
+                    mido_msg.velocity,
+                    self._update_accum_time(mido_msg.time),
+                    None,
+                )
+        elif mido_msg.type == "note_off":
+            note_event = self._current_playing_notes.pop(mido_msg.note, None)
+            if note_event:
+                note_event.end = self._update_accum_time(mido_msg.time)
+                return note_event
+            else:
+                print(f"No note to turn off: {mido_msg}")
         else:
             # print(f"Unknown message type: {mido_msg}")
             self._update_accum_time(mido_msg.time)

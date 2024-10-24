@@ -128,3 +128,12 @@ def test_symusiccontainer_from_symusic():
     print(sym_obj.markers)
     print(sym_obj2.markers)
     # TODO:: key_signature_changes
+
+def test_piast_sample():
+    from midisym.parser.midi import MidiParser
+    file_path = './tests/sample/piast_example__asc-c5M1k.mid'
+    midi_parser = MidiParser(file_path)
+    sym_obj = midi_parser.sym_music_container
+
+    for inst in sym_obj.instruments:
+        print(inst.program)

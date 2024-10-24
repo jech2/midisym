@@ -5,6 +5,11 @@ from midisym.analysis.grid_quantize import (
 )
 from midisym.constants import PITCH_NAME_TO_ID, PITCH_ID_TO_NAME
 
+from midisym.parser.midi import MidiParser
+from midisym.parser.container import SymMusicContainer, TempoChange, Marker, Note, Instrument
+
+import pickle
+
 def find_nearest_bin(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
@@ -15,7 +20,6 @@ def find_nearest_bin(array, value):
 
 class REMILikeCNE:
     def __init__(self):
-        
         self.pitch_bins = range(21, 109)    
         self.duration_bins = range(120, 1921, 120)
         self.tempo_bins = np.arange(32, 225, 3)
@@ -36,6 +40,11 @@ class REMILikeCNE:
         }
 
         self.vocab = self.make_vocabulary()
+        self.vocab['PAD'] = len(self.vocab)
+    
+        self.cal_pitch_token_min_max_idx()
+        self.cal_chord_token_min_max_idx()
+        
     
     def get_tempo_token(self, tempo):
         if tempo == 'Conti':
@@ -119,10 +128,24 @@ class REMILikeCNE:
         for token in self.other_tokens:
             vocab.append(token)
                 
-        vocab = sorted(vocab)
+        # vocab = sorted(vocab)
         vocab = {token: idx for idx, token in enumerate(vocab)}
         
         return vocab
+    
+    def cal_pitch_token_min_max_idx(self):
+        # find min and max pitch token idx
+        pitch_tokens = [self.get_pitch_token(pitch) for pitch in self.pitch_bins]
+        # get idx of all pitch tokens
+        pitch_tokens_idx = [self.vocab[pitch_token] for pitch_token in pitch_tokens]
+        self.pitch_token_min_max_idx = (min(pitch_tokens_idx), max(pitch_tokens_idx))
+    
+    def cal_chord_token_min_max_idx(self):
+        # find min and max chord token idx
+        chord_tokens = [self.get_chord_token(root, chord) for root in range(12) for chord in self.chords]
+        # get idx of all chord tokens
+        chord_tokens_idx = [self.vocab[chord_token] for chord_token in chord_tokens]
+        self.chord_token_min_max_idx = (min(chord_tokens_idx), max(chord_tokens_idx))    
     
     def tokenize_events(self, all_events, grid, chord_style='pop909'):
         """
@@ -156,6 +179,14 @@ class REMILikeCNE:
                     root, chord, bass = event.text.split('_')
                     if chord == 'bpm':
                         continue #ignore bpm marker
+                elif chord_style == 'maj_min':
+                    # majmin style
+                    if 'maj' in event.text:
+                        root = event.text.split('maj')
+                        chord = 'M'
+                    elif 'min' in event.text:
+                        root = event.text.split('min')
+                        chord = 'm'
                 all_event_seq.append(self.get_chord_token(PITCH_NAME_TO_ID[root], chord))
             elif isinstance(event, Note):
                 if event.end == event.start:
@@ -203,27 +234,26 @@ class REMILikeCNE:
         
         return all_events, grid
         
-    def tokenize(self, sym_obj, sym_data_type, chord_style):
+    def tokenize(self, sym_obj: SymMusicContainer, sym_data_type: str, chord_style: str):
         all_events, grid = self.make_all_event_list(sym_obj, sym_data_type)
         token_seq = self.tokenize_events(all_events, grid, chord_style)
         return token_seq
         
-    def token_to_idx(self, token):
+    def token_to_idx(self, token: str):
         return self.vocab[token]
     
-    def idx_to_token(self, idx):
+    def idx_to_token(self, idx: int):
         return list(self.vocab.keys())[idx]
     
     def __len__(self):
         return len(self.vocab)
     
-    def word_to_sym_obj(self, word_seq, bar_resolution=16, ticks_per_beat=480):
+    def word_to_sym_obj(self, word_seq: list, bar_resolution: int=16, ticks_per_beat: int=480, program: int=0):
         tick_per_pos = ticks_per_beat // (bar_resolution // 4)
         current_tick = 0
         
-        from midisym.parser.container import SymMusicContainer, TempoChange, Marker, Note, Instrument
         sym_obj = SymMusicContainer(ticks_per_beat=ticks_per_beat)
-        sym_obj.instruments.append(Instrument())
+        sym_obj.instruments.append(Instrument(program=program))
         
         current_pitch = None
         current_duration = None
@@ -275,21 +305,28 @@ class REMILikeCNE:
                         current_duration = None
                         current_velocity = None
                     else:
-                        raise ValueError("Note event is not complete")
-            
+                        # raise ValueError("Note event is not complete")
+                        print(f"Note event is not complete at {i}, ignore current note")
+                        current_pitch = None
+                        current_duration = None
+                        current_velocity = None
+                        
         return sym_obj
     
-    def word_to_midi(self, word_seq, out_fp, bar_resolution=16, tick_per_beat=480):
-        sym_obj = self.word_to_sym_obj(word_seq, bar_resolution, tick_per_beat)
-        from midisym.parser.midi import MidiParser
+    def word_to_midi(self, word_seq: list[str], out_fp: str, bar_resolution: int=16, tick_per_beat: int=480, program: int=0):
+        sym_obj = self.word_to_sym_obj(word_seq, bar_resolution, tick_per_beat, program)
         parser = MidiParser(sym_music_container=sym_obj)
         parser.dump(out_fp)
         
-    def make_inst_events(self, q_sym_obj, grid, inst_idx, use_tempo_changes=True, bar_resolution=16):    
+        return parser
+        
+    def make_inst_events(self, q_sym_obj: SymMusicContainer, grid: np.ndarray, inst_idx: int, use_tempo_changes: bool, bar_resolution: int=16):
         grid_list = [[] for _ in range(len(grid))]
         
         if use_tempo_changes:
             for tempo in q_sym_obj.tempo_changes:
+                if tempo.time > q_sym_obj.max_tick:
+                    break
                 start_idx = np.where(grid == tempo.time)[0][0]
                 grid_list[start_idx].append(tempo)
         
@@ -311,6 +348,7 @@ class REMILikeCNE:
     def tokenize_inst_events(self, events, inst_idx, bar_resolution=16, chord_style="pop909"):
         tokenized_seq = []
         prev_tempo = None
+        prev_chord = None
         
         for i in range(0, len(events), bar_resolution):
             bar_events = events[i:i+bar_resolution]
@@ -332,20 +370,141 @@ class REMILikeCNE:
                             root, chord = event.text.split('_')[-1].split(":")
                         elif chord_style == 'chorder':
                             root, chord, bass = event.text.split('_')
-                        tokenized_seq.append(self.get_chord_token(PITCH_NAME_TO_ID[root], chord))
+                        elif chord_style == 'maj_min':
+                            # majmin style
+                            if 'maj' in event.text:
+                                root = event.text.split('maj')[0]
+                                chord = 'M'
+                            elif 'min' in event.text:
+                                root = event.text.split('min')[0]
+                                chord = 'm'
+                                
+                        if prev_chord != event.text:
+                            tokenized_seq.append(self.get_chord_token(PITCH_NAME_TO_ID[root], chord))
+                        else:
+                            tokenized_seq.append(self.get_chord_token(PITCH_NAME_TO_ID[root], chord))
+                        prev_chord = event.text
                     elif isinstance(event, Note):
                         tokenized_seq.append(self.get_pitch_token(event.pitch))
                         tokenized_seq.append(self.get_duration_token(event.end - event.start, duration_mode='tick'))
                         tokenized_seq.append(self.get_velocity_token(event.velocity))
                     else:
                         raise NotImplementedError(f'Event {event} is not supported')
-        bar_starts = np.where(np.array(tokenized_seq) == self.get_bar_token())[0]
+        bar_starts = np.where(np.array(tokenized_seq) == self.get_inst_token(inst_idx))[0]
         bar_idxs = [(int(bar_starts[i]), int(bar_starts[i+1])) for i in range(len(bar_starts)-1)]
         # last bar
         bar_idxs.append((int(bar_starts[-1]), len(tokenized_seq)))
         
-        print(tokenized_seq)
-        
         tokenized_seq = [self.token_to_idx(token) for token in tokenized_seq]
         
         return tokenized_seq, bar_idxs
+    
+    def get_global_bpm(self, sym_obj: SymMusicContainer):
+        for marker in sym_obj.markers:
+            if 'global_bpm' in marker.text:
+                return int(marker.text.split('_')[-1])
+        return None
+    
+    def tokenize_piece(self, sym_obj: SymMusicContainer, sym_data_type: str, chord_style: str='pop909', out_fn=None):
+        q_sym_obj, grid = make_grid_quantized_notes(
+        sym_obj=sym_obj,
+        sym_data_type=sym_data_type,
+        )
+
+        melody_events = self.make_inst_events(q_sym_obj, grid, 1, use_tempo_changes=False) # assume melody is 1
+        arrangement_events = self.make_inst_events(q_sym_obj, grid, 0, use_tempo_changes=True) # assume arrangement is 0
+        
+        tokenized_melody, melody_bar_idxs = self.tokenize_inst_events(melody_events, 1, chord_style=chord_style)
+        tokenized_arrangement, arrangement_bar_idxs = self.tokenize_inst_events(arrangement_events, 0, chord_style=chord_style)
+        
+        global_bpm = self.get_global_bpm(sym_obj)
+
+        # tokenized_melody and arrangment is joined per bar level
+        assert len(melody_bar_idxs) == len(arrangement_bar_idxs)
+        tokenized_mel_arr_join = []
+        for melody_bar_idx, arrangement_bar_idx in zip(melody_bar_idxs, arrangement_bar_idxs):
+            melody_bar_idx_start, melody_bar_idx_end = melody_bar_idx
+            arrangement_bar_idx_start, arrangement_bar_idx_end = arrangement_bar_idx
+        
+            melody_bar = tokenized_melody[melody_bar_idx_start:melody_bar_idx_end]
+            arrangement_bar = tokenized_arrangement[arrangement_bar_idx_start:arrangement_bar_idx_end]
+            
+            joined_events = melody_bar + arrangement_bar
+            tokenized_mel_arr_join += joined_events
+        
+
+        mel_bar_idxs, arr_bar_idxs = self.get_mel_and_arr_bars_from_joined_tokens(tokenized_mel_arr_join)
+        
+        
+            
+        
+        result = {
+            'tokenized_piece': tokenized_mel_arr_join,
+            'melody_bar_idxs': mel_bar_idxs,
+            'arrangement_bar_idxs': arr_bar_idxs,
+            'global_bpm': global_bpm
+        }
+        
+        if out_fn:
+            with open(out_fn, 'wb') as f:
+                pickle.dump(result, f)
+        
+        return result
+    
+    def add_eos(self, tokenized_seq):
+        tokenized_seq.append(self.token_to_idx('EOS_None'))
+        return tokenized_seq
+    
+    def get_mel_and_arr_bars_from_joined_tokens(self, tokenized_piece: list[int]):
+        mel_bar_idx = np.where(np.array(tokenized_piece) == self.token_to_idx(self.get_inst_token(1)))[0]
+        arr_bar_idx = np.where(np.array(tokenized_piece) == self.token_to_idx(self.get_inst_token(0)))[0]
+        
+        # total bars
+        total_bar_idx = np.concatenate([mel_bar_idx, arr_bar_idx])
+        total_bar_idx.sort()
+        
+        mel_bar_idxs = []
+        arr_bar_idxs = []
+        
+        for i in range(len(total_bar_idx)-1):
+            start = total_bar_idx[i]
+            end = total_bar_idx[i+1]
+            if tokenized_piece[start] == self.token_to_idx(self.get_inst_token(1)):
+                # melody bar
+                mel_bar_idxs.append((start, end))
+            elif tokenized_piece[start] == self.token_to_idx(self.get_inst_token(0)):
+                # arrangement bar
+                arr_bar_idxs.append((start, end))
+        
+        # last bar
+        if tokenized_piece[total_bar_idx[-1]] == self.token_to_idx(self.get_inst_token(1)):
+            mel_bar_idxs.append((total_bar_idx[-1], len(tokenized_piece)))
+        else:
+            arr_bar_idxs.append((total_bar_idx[-1], len(tokenized_piece)))
+    
+        return mel_bar_idxs, arr_bar_idxs
+        
+    def mel_arr_joined_tokens_to_midi(self, tokenized_piece: list[int], out_fp: str, mel_bar_idxs: list[tuple[int, int]]=None, arr_bar_idxs: list[tuple[int, int]]=None):
+        
+        melody_tokens = []
+        arrangment_tokens = []
+        
+        if mel_bar_idxs is None and arr_bar_idxs is None:
+            mel_bar_idxs, arr_bar_idxs = self.get_mel_and_arr_bars_from_joined_tokens(tokenized_piece)
+            
+        for mel_bar_idx, arr_bar_idx in zip(mel_bar_idxs, arr_bar_idxs):
+            mel_bar_start, mel_bar_end = mel_bar_idx
+            arr_bar_start, arr_bar_end = arr_bar_idx
+        
+            melody_tokens.extend(tokenized_piece[mel_bar_start:mel_bar_end])
+            arrangment_tokens.extend(tokenized_piece[arr_bar_start:arr_bar_end])
+            
+        mel_parser = self.word_to_midi([self.idx_to_token(tok) for tok in melody_tokens], out_fp=out_fp.replace(".mid", "_melody.mid"), program=1)
+        arr_parser = self.word_to_midi([self.idx_to_token(tok) for tok in arrangment_tokens], out_fp=out_fp.replace(".mid", "_arrangement.mid"), program=0)
+        
+        arr_parser.sym_music_container.instruments.append(
+            mel_parser.sym_music_container.instruments[0]
+        )
+        
+        arr_parser.dump(out_fp)
+        
