@@ -104,7 +104,7 @@ def test_tokenization_analyzed(analyzed_performance_midi_parser):
     
 def test_tokenization_analyzed_join(analyzed_performance_midi_parser):
     sym_obj = analyzed_performance_midi_parser.sym_music_container
-    sym_data_type = "analyzed performance MIDI"
+    sym_data_type = "analyzed performance MIDI -- grid from ticks"
     
     from midisym.converter.sequence.vocabulary import REMILikeCNE
     vocab = REMILikeCNE()
@@ -117,14 +117,19 @@ def test_tokenization_analyzed_join(analyzed_performance_midi_parser):
     melody_events = vocab.make_inst_events(q_sym_obj, grid, 1, use_tempo_changes=False) # assume melody is 1
     arrangement_events = vocab.make_inst_events(q_sym_obj, grid, 0, use_tempo_changes=True) # assume arrangement is 0
     
-    tokenized_melody, melody_bar_idxs = vocab.tokenize_inst_events(melody_events, 1, chord_style='chorder')
-    tokenized_arrangement, arrangement_bar_idxs = vocab.tokenize_inst_events(arrangement_events, 0, chord_style='chorder')
+    tokenized_melody, melody_bar_idxs = vocab.tokenize_inst_events(melody_events, 1, chord_style='chorder', use_velocity=False)
+    tokenized_arrangement, arrangement_bar_idxs = vocab.tokenize_inst_events(arrangement_events, 0, chord_style='chorder', use_velocity=True)
     
     data = vocab.tokenize_piece(sym_obj, sym_data_type=sym_data_type, chord_style='chorder')
     print(data)
+    
+    for i, d in enumerate(data['tokenized_piece']):
+        if i > 100:
+            break
+        print(vocab.idx_to_token(d))
+    
     
     tokenized_piece, mel_bar_idxs, arr_bar_idxs = data['tokenized_piece'], data['melody_bar_idxs'], data['arrangement_bar_idxs']
     
     vocab.mel_arr_joined_tokens_to_midi(tokenized_piece, mel_bar_idxs=mel_bar_idxs, arr_bar_idxs=arr_bar_idxs, out_fp='test_joined_out.mid')    
     
-    # print(

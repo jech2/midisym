@@ -15,7 +15,7 @@ def quantize_melody(notes: list[Note], tick_resol: int = 240):
     melody_notes = []
     for note in notes:
         # cut too long notes
-        if note.end - note.start > tick_resol * 8:
+        if note.end - note.start > tick_resol * 8: # max 2 bars
             note.end = note.start + tick_resol * 4
 
         # quantize
@@ -29,23 +29,33 @@ def quantize_melody(notes: list[Note], tick_resol: int = 240):
     return melody_notes
 
 
-def extract_melody(notes: list[Note], tick_resol: Union[int, None] = None):
+def extract_melody(notes: list[Note], tick_resol: Union[int, None] = None, do_quantize=False, make_monophonic=True, mode='highest pitch'):
     # quantize
-    if tick_resol is not None:
+    if tick_resol is not None and do_quantize:
         notes = quantize_melody(notes, tick_resol)
     melody_notes = list(notes)
 
     # sort by start, pitch from high to low
-    melody_notes.sort(key=lambda x: (x.start, -x.pitch))
-
+    
+    if mode == 'highest pitch':
+        melody_notes.sort(key=lambda x: (x.start, -x.pitch))
+    elif mode == 'highest velocity':
+        melody_notes.sort(key=lambda x: (x.start, -x.velocity))
+    else:
+        raise ValueError(f"mode {mode} is not supported")
     # exclude notes < 60
     bins = []
-    prev = None
+    prev = 0
     tmp_list = []
+    if tick_resol: 
+        rel_time_unit = tick_resol / 64.0 # very small
+    else:
+        rel_time_unit = 0
+        
     for nidx in range(len(melody_notes)):
         note = melody_notes[nidx]
         if note.pitch >= 60:
-            if note.start != prev:
+            if abs(note.start - prev) > rel_time_unit:
                 if tmp_list:
                     bins.append(tmp_list)
                 tmp_list = [note]
@@ -60,9 +70,10 @@ def extract_melody(notes: list[Note], tick_resol: Union[int, None] = None):
 
     # avoid overlapping
     notes_out.sort(key=lambda x: x.start)
-    for idx in range(len(notes_out) - 1):
-        if notes_out[idx].end >= notes_out[idx + 1].start:
-            notes_out[idx].end = notes_out[idx + 1].start
+    if make_monophonic:
+        for idx in range(len(notes_out) - 1):
+            if notes_out[idx].end >= notes_out[idx + 1].start:
+                notes_out[idx].end = notes_out[idx + 1].start
 
     # delete note having no duration
     notes_clean = []
@@ -87,6 +98,9 @@ def save_extracted_melody(
     sym_music_container: SymMusicContainer,
     output_midi_path: Union[str, Path],
     all_notes: Union[list[Note], None] = None,
+    tick_resol: int = 240,
+    do_quantize: bool = False,
+    make_monophonic: bool = True,
     do_write_audio: bool = False,
     dump_prev_midi: bool = False,
 ):
@@ -94,7 +108,7 @@ def save_extracted_melody(
     if all_notes is None:
         all_notes = get_all_notes(sym_music_obj)
 
-    melody_notes = extract_melody(all_notes)
+    melody_notes = extract_melody(all_notes, tick_resol=tick_resol, do_quantize=do_quantize, make_monophonic=make_monophonic)
 
     # save the melody notes to a new midi file
     # make a copy of the sym_music_obj

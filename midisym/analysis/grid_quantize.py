@@ -1,5 +1,6 @@
 from ..parser.container import SymMusicContainer, TempoChange
 import numpy as np
+import copy
 
 def get_grid_from_constant_tempo(
     sym_obj: SymMusicContainer, quantize_resolution: int = 4
@@ -82,14 +83,24 @@ def make_grid_quantized_notes(
         else:    
             grid = get_grid_from_tempo_changes(sym_obj, quantize_resolution=4)
     elif sym_data_type == "analyzed performance MIDI -- grid from ticks":
-        ticks_per_beat = sym_obj.ticks_per_beat
-        grid = np.arange(0, sym_obj.max_tick, ticks_per_beat // quantize_resolution)
+        # Calculate step size and initial grid
+        step_size = sym_obj.ticks_per_beat // quantize_resolution
+        grid = np.arange(0, sym_obj.max_tick, step_size)
+
+        # Pad the grid to ensure the length is a multiple of quantize_resolution * 4
+        padding_length = (-len(grid)) % (quantize_resolution * 4)
+        if padding_length > 0:
+            padding_ticks = np.arange(grid[-1] + step_size, grid[-1] + (padding_length + 1) * step_size, step_size)
+            grid = np.concatenate((grid, padding_ticks))
+            
     else:
         raise NotImplementedError(
             f"Currently only constant tempo MIDI and analyzed performance MIDI are supported, got {sym_data_type}"
         )
+        
+    q_sym_obj = copy.deepcopy(sym_obj)
     # change the note start and end to the nearest grid
-    for inst in sym_obj.instruments:
+    for inst in q_sym_obj.instruments:
         new_notes = []
         for note in inst.notes:
             # print('before', note.start, note.end)
@@ -106,16 +117,16 @@ def make_grid_quantized_notes(
     
     # change the chord events into the nearest grid
     new_markers = []
-    for marker in sym_obj.markers:
+    for marker in q_sym_obj.markers:
         marker.time = int(min(grid, key=lambda x: abs(x - marker.time)))
         new_markers.append(marker)
-    sym_obj.markers = new_markers
+    q_sym_obj.markers = new_markers
     
     # tempo
     new_tempo_changes = []
-    for tc in sym_obj.tempo_changes:
+    for tc in q_sym_obj.tempo_changes:
         tc.time = int(min(grid, key=lambda x: abs(x - tc.time)))
         new_tempo_changes.append(tc)
-    sym_obj.tempo_changes = new_tempo_changes
+    q_sym_obj.tempo_changes = new_tempo_changes
     
-    return sym_obj, grid
+    return q_sym_obj, grid

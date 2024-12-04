@@ -248,7 +248,7 @@ class REMILikeCNE:
     def __len__(self):
         return len(self.vocab)
     
-    def word_to_sym_obj(self, word_seq: list, bar_resolution: int=16, ticks_per_beat: int=480, program: int=0):
+    def word_to_sym_obj(self, word_seq: list, bar_resolution: int=16, ticks_per_beat: int=480, program: int=0, use_velocity: bool=True):
         tick_per_pos = ticks_per_beat // (bar_resolution // 4)
         current_tick = 0
         
@@ -290,31 +290,54 @@ class REMILikeCNE:
                     current_pitch = int(split_word[2])
                 elif note_event_type == "Duration":
                     current_duration = int(split_word[2])
+                    if not use_velocity:
+                        # not use velocity, make the input to have velocity = 100
+                        if current_pitch is not None and current_duration is not None:
+                            sym_obj.instruments[0].notes.append(
+                                Note(
+                                    start=current_tick,
+                                    end=current_tick + current_duration,
+                                    pitch=current_pitch,
+                                    velocity=100,
+                                )
+                            )
+                            current_pitch = None
+                            current_duration = None
+                            
+                        else:
+                            print(f"Note event is not complete at {i}, ignore current note")
+                            current_pitch = None
+                            current_duration = None
+                            
                 elif note_event_type == "Velocity":
                     current_velocity = int(split_word[2])
-                    if current_pitch is not None and current_duration is not None and current_velocity is not None:
-                        sym_obj.instruments[0].notes.append(
-                            Note(
-                                start=current_tick,
-                                end=current_tick + current_duration,
-                                pitch=current_pitch,
-                                velocity=current_velocity,
+                    if use_velocity:
+                        if current_pitch is not None and current_duration is not None and current_velocity is not None:
+                            sym_obj.instruments[0].notes.append(
+                                Note(
+                                    start=current_tick,
+                                    end=current_tick + current_duration,
+                                    pitch=current_pitch,
+                                    velocity=current_velocity,
+                                )
                             )
-                        )
-                        current_pitch = None
-                        current_duration = None
-                        current_velocity = None
+                            current_pitch = None
+                            current_duration = None
+                            current_velocity = None
+                        else:
+                            # raise ValueError("Note event is not complete")
+                            print(f"Note event is not complete at {i}, ignore current note")
+                            current_pitch = None
+                            current_duration = None
+                            current_velocity = None
                     else:
-                        # raise ValueError("Note event is not complete")
-                        print(f"Note event is not complete at {i}, ignore current note")
-                        current_pitch = None
-                        current_duration = None
-                        current_velocity = None
+                        print("Invalid token style: no velocity token is supported for current setting. use use_velocity=True")
+
                         
         return sym_obj
     
-    def word_to_midi(self, word_seq: list[str], out_fp: str, bar_resolution: int=16, tick_per_beat: int=480, program: int=0):
-        sym_obj = self.word_to_sym_obj(word_seq, bar_resolution, tick_per_beat, program)
+    def word_to_midi(self, word_seq: list[str], out_fp: str, bar_resolution: int=16, tick_per_beat: int=480, program: int=0, use_velocity: bool=True):
+        sym_obj = self.word_to_sym_obj(word_seq, bar_resolution, tick_per_beat, program, use_velocity)
         parser = MidiParser(sym_music_container=sym_obj)
         parser.dump(out_fp)
         
@@ -345,7 +368,7 @@ class REMILikeCNE:
         return grid_list
     
     
-    def tokenize_inst_events(self, events, inst_idx, bar_resolution=16, chord_style="pop909"):
+    def tokenize_inst_events(self, events, inst_idx, bar_resolution=16, chord_style="pop909", use_velocity: bool = True):
         tokenized_seq = []
         prev_tempo = None
         prev_chord = None
@@ -387,7 +410,8 @@ class REMILikeCNE:
                     elif isinstance(event, Note):
                         tokenized_seq.append(self.get_pitch_token(event.pitch))
                         tokenized_seq.append(self.get_duration_token(event.end - event.start, duration_mode='tick'))
-                        tokenized_seq.append(self.get_velocity_token(event.velocity))
+                        if use_velocity:
+                            tokenized_seq.append(self.get_velocity_token(event.velocity))
                     else:
                         raise NotImplementedError(f'Event {event} is not supported')
         bar_starts = np.where(np.array(tokenized_seq) == self.get_inst_token(inst_idx))[0]
@@ -414,8 +438,8 @@ class REMILikeCNE:
         melody_events = self.make_inst_events(q_sym_obj, grid, 1, use_tempo_changes=False) # assume melody is 1
         arrangement_events = self.make_inst_events(q_sym_obj, grid, 0, use_tempo_changes=True) # assume arrangement is 0
         
-        tokenized_melody, melody_bar_idxs = self.tokenize_inst_events(melody_events, 1, chord_style=chord_style)
-        tokenized_arrangement, arrangement_bar_idxs = self.tokenize_inst_events(arrangement_events, 0, chord_style=chord_style)
+        tokenized_melody, melody_bar_idxs = self.tokenize_inst_events(melody_events, 1, chord_style=chord_style, use_velocity=False)
+        tokenized_arrangement, arrangement_bar_idxs = self.tokenize_inst_events(arrangement_events, 0, chord_style=chord_style, use_velocity=True)
         
         global_bpm = self.get_global_bpm(sym_obj)
 
@@ -492,15 +516,16 @@ class REMILikeCNE:
         if mel_bar_idxs is None and arr_bar_idxs is None:
             mel_bar_idxs, arr_bar_idxs = self.get_mel_and_arr_bars_from_joined_tokens(tokenized_piece)
             
-        for mel_bar_idx, arr_bar_idx in zip(mel_bar_idxs, arr_bar_idxs):
+        for mel_bar_idx in mel_bar_idxs:
             mel_bar_start, mel_bar_end = mel_bar_idx
-            arr_bar_start, arr_bar_end = arr_bar_idx
-        
             melody_tokens.extend(tokenized_piece[mel_bar_start:mel_bar_end])
+           
+        for arr_bar_idx in arr_bar_idxs: 
+            arr_bar_start, arr_bar_end = arr_bar_idx
             arrangment_tokens.extend(tokenized_piece[arr_bar_start:arr_bar_end])
             
-        mel_parser = self.word_to_midi([self.idx_to_token(tok) for tok in melody_tokens], out_fp=out_fp.replace(".mid", "_melody.mid"), program=1)
-        arr_parser = self.word_to_midi([self.idx_to_token(tok) for tok in arrangment_tokens], out_fp=out_fp.replace(".mid", "_arrangement.mid"), program=0)
+        mel_parser = self.word_to_midi([self.idx_to_token(tok) for tok in melody_tokens], out_fp=out_fp.replace(".mid", "_melody.mid"), program=1, use_velocity=False)
+        arr_parser = self.word_to_midi([self.idx_to_token(tok) for tok in arrangment_tokens], out_fp=out_fp.replace(".mid", "_arrangement.mid"), program=0, use_velocity=True)
         
         arr_parser.sym_music_container.instruments.append(
             mel_parser.sym_music_container.instruments[0]

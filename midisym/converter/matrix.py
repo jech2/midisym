@@ -1,12 +1,12 @@
 import numpy as np
-from midisym.parser.container import SymMusicContainer
-from midisym.analysis.grid_quantize import (
+from ..parser.container import SymMusicContainer
+from ..analysis.grid_quantize import (
     make_grid_quantized_notes,
 )
-from midisym.analysis.utils import get_all_marker_start_end_time
-from midisym.analysis.chord.chord_event import chord_name_to_chroma
+from ..analysis.utils import get_all_marker_start_end_time
+from ..analysis.chord.chord_event import chord_name_to_chroma
 
-from midisym.constants import PITCH_ID_TO_NAME, PITCH_RANGE, MIDI_MAX, MELODY, BRIDGE, PIANO
+from ..constants import PITCH_ID_TO_NAME, PITCH_RANGE, MIDI_MAX, MELODY, BRIDGE, PIANO
 from collections import Counter
 
 
@@ -24,7 +24,8 @@ def sym_to_pr_mat(sym_obj: SymMusicContainer, sym_data_type="analyzed performanc
 def make_grid_quantized_note_prmat(sym_obj: SymMusicContainer, 
                                    grid: np.array, 
                                    value: str = 'duration', 
-                                   pitch_range: tuple[int, int] = PITCH_RANGE, inst_ids = [MELODY, BRIDGE, PIANO]):
+                                   pitch_range: tuple[int, int] = PITCH_RANGE, inst_ids = [MELODY, BRIDGE, PIANO],
+                                   do_slicing: bool = True):
     # grid 인덱스에 맞는 note에 대해 pr_mat에 등록
     
     min_pitch, max_pitch = pitch_range
@@ -41,6 +42,8 @@ def make_grid_quantized_note_prmat(sym_obj: SymMusicContainer,
                     pr_mat[start_idx, note.pitch] = end_idx - start_idx
                 elif value == 'binary':
                     pr_mat[start_idx:end_idx, note.pitch] = 1
+                elif value == 'onset_binary':
+                    pr_mat[start_idx, note.pitch] = 1
                 elif value == 'onset_velocity':
                     pr_mat[start_idx, note.pitch] = note.velocity
                 elif value == 'frame_velocity':
@@ -48,12 +51,13 @@ def make_grid_quantized_note_prmat(sym_obj: SymMusicContainer,
                 elif value == 'offset_velocity':
                     pr_mat[end_idx, note.pitch] = note.velocity
                 else:
-                    raise ValueError('value should be in [duration, binary, onset_velocity, offset_velocity, frame_velocity]')
+                    raise ValueError('value should be in [duration, binary, onset_binary, onset_velocity, offset_velocity, frame_velocity]')
             except:
                 pass
 
     # slicing the pitch range
-    pr_mat = pr_mat[:, min_pitch:max_pitch+1]
+    if do_slicing:
+        pr_mat = pr_mat[:, min_pitch:max_pitch+1]
 
     return pr_mat
 
