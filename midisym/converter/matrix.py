@@ -8,7 +8,12 @@ from ..analysis.chord.chord_event import chord_name_to_chroma
 
 from ..constants import PITCH_ID_TO_NAME, PITCH_RANGE, MIDI_MAX, MELODY, BRIDGE, PIANO
 from collections import Counter
+import numpy as np
 
+from ..parser.utils import get_ticks_to_seconds_grid
+from ..analysis.chord.chord_event import ChordEvent
+
+from ..converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET, MELODY, ARRANGEMENT
 
 def sym_to_pr_mat(sym_obj: SymMusicContainer, sym_data_type="analyzed performance MIDI"):
     sym_obj, grid = make_grid_quantized_notes(
@@ -176,3 +181,66 @@ def visualize_onset_mat(onset_mat: np.array, save_path: str = "onset_mat.png"):
     plt.xlabel("Time Step")
     plt.savefig(save_path)  
     plt.close()
+    
+def get_absolute_time_mat(sym_obj: SymMusicContainer, pr_res=PR_RES):    
+    ticks_to_seconds = get_ticks_to_seconds_grid(sym_obj)
+    last_sec = ticks_to_seconds[-1]
+    # making 32 Hz piano roll
+    piano_roll_xs = np.arange(0, last_sec, 1/32) # len = 32 * last_sec
+    
+    all_markers = get_all_marker_start_end_time(sym_obj, piano_roll_xs)
+    all_markers_sec = [(marker[0], ticks_to_seconds[marker[1]], ticks_to_seconds[marker[2]]) for marker in all_markers if marker[1] < len(ticks_to_seconds) and marker[2] < len(ticks_to_seconds)]
+
+    piano_rolls = []
+
+    for idx, inst in enumerate(sym_obj.instruments):
+        note_infos = []
+        for note in inst.notes:
+            note.start = ticks_to_seconds[note.start]
+            note.end = ticks_to_seconds[note.end]
+            note_info = (note.start, note.end, note.pitch, note.velocity)
+            note_infos.append(note_info)
+            
+        piano_roll = np.zeros((len(piano_roll_xs), N_PITCH))
+            
+        for note_info in note_infos:
+            start, end, pitch, velocity = note_info
+            start_idx = int(start * pr_res)
+            end_idx = int(end * pr_res)
+            if end_idx - start_idx < 2:
+                end_idx = start_idx + 2
+                continue
+            pr_pitch = pitch - PITCH_OFFSET
+        
+            # piano_roll[start_idx:end_idx, pr_pitch] = velocity
+            piano_roll[start_idx, pr_pitch] = ONSET
+            piano_roll[start_idx+1:end_idx, pr_pitch] = SUSTAIN
+            
+        if idx == MELODY:
+            prev_chord = None
+            for i, marker in enumerate(all_markers_sec):
+                text, start, end = marker
+                if 'bpm' in text:
+                    continue
+                else:
+                    root, quality, bass = text.split("_")
+                    if root == 'N':
+                        if prev_chord is not None:
+                            root, quality, bass = prev_chord
+                        else:
+                            continue
+                    chord = ChordEvent(root, quality, -1, -1, None)
+                    chord_pitches = chord.to_pitches(as_name=False)
+                    chord_pitches = [pitch - PITCH_OFFSET for pitch in chord_pitches]
+                    chord_pitches = [pitch - CHORD_OFFSET for pitch in chord_pitches if pitch - CHORD_OFFSET >= 0] # not to make the overlap with melody
+                    prev_chord = (root, quality, bass)
+            
+                for pitch in chord_pitches:
+                    start_idx = int(start * pr_res)
+                    end_idx = int(end * pr_res)
+                    # piano_roll[start_idx:end_idx, pitch] = 100
+                    piano_roll[start_idx, pitch] = ONSET
+                    piano_roll[start_idx+1:end_idx, pitch] = SUSTAIN 
+        piano_rolls.append(piano_roll)
+                    
+    return piano_rolls, piano_roll_xs, note_infos
