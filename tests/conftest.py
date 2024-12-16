@@ -33,3 +33,10 @@ def analyzed_performance_midi_parser_pop1k7():
     file_path = "./tests/sample/pop1k7_8.mid"
     midi_parser = MidiParser(file_path)
     return midi_parser
+
+@pytest.fixture
+def quantized_midi_parser_pop2piano():
+    from midisym.parser.midi import MidiParser
+    file_path = './tests/sample/YHtysd6SKhA.qmidi.mid'
+    midi_parser = MidiParser(file_path)
+    return midi_parser
