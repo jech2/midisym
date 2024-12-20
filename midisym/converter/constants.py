@@ -1,6 +1,6 @@
 # for piano roll pop1k7
-ARRANGEMENT = 0
-MELODY = 1
+POP1k7_ARRANGEMENT = 0
+POP1k7_MELODY = 1
 
 REST = 0
 ONSET = 1

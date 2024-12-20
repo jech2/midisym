@@ -82,6 +82,12 @@ def make_grid_quantized_notes(
             grid = np.unique(np.concatenate((grid, grid2)))
         else:    
             grid = get_grid_from_tempo_changes(sym_obj, quantize_resolution=4)
+
+        padding_length = (-len(grid)) % (quantize_resolution * 4)
+        if padding_length > 0:
+            padding_ticks = np.arange(grid[-1] + sym_obj.ticks_per_beat, grid[-1] + (padding_length + 1) * sym_obj.ticks_per_beat, sym_obj.ticks_per_beat)
+            grid = np.concatenate((grid, padding_ticks))
+            
     elif sym_data_type == "analyzed performance MIDI -- grid from ticks":
         # Calculate step size and initial grid
         step_size = sym_obj.ticks_per_beat // quantize_resolution

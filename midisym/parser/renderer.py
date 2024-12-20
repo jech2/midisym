@@ -24,7 +24,6 @@ def _check_soundfont(soundfont_path):
         # )
     return soundfont_path
 
-
 def write_audio(
     parser: MidiParser,
     path: Union[str, Path],

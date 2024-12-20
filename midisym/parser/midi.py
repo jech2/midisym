@@ -31,9 +31,11 @@ class MidiParser:
         file_path: Path | str | None = None,
         use_symusic: bool = False,
         sym_music_container: SymMusicContainer | None = None,
+        verbose: bool = False,
     ):
         # for parsing
         self.use_symusic = use_symusic
+        self.verbose = verbose
         self.init_parser()
         if file_path:
             self.sym_music_container = self.parse(file_path)
@@ -79,7 +81,7 @@ class MidiParser:
         #     print(f"Error reading MIDI file: {e}")
         #     return None
 
-    def process_mido_messages(self, verbose: bool = False):
+    def process_mido_messages(self):
         """
         Processes MIDI messages.
         """
@@ -121,7 +123,7 @@ class MidiParser:
                     max([note.end for note in note_events]),
                 )
 
-        if verbose:
+        if self.verbose:
             # save messages to a file
             if not os.path.exists("midi_messages.txt"):
                 with open("midi_messages.txt", "w") as f:
@@ -154,8 +156,6 @@ class MidiParser:
         elif mido_msg.type == "track_name":
             self._current_instrument_name = mido_msg.name
         elif mido_msg.type == "program_change":
-            # assert self._current_instrument_name != "", "No instrument name"
-            # Initialize a new instrument
             instrument = Instrument(
                 mido_msg.program,
                 channel=mido_msg.channel,
@@ -165,41 +165,49 @@ class MidiParser:
         elif mido_msg.type == "marker":
             return Marker(mido_msg.text, self._update_accum_time(mido_msg.time))
         elif mido_msg.type == "note_on":
-            # if the velocity is 0, it is equivalent to note_off
             if mido_msg.velocity == 0:
-                note_event = self._current_playing_notes.pop(mido_msg.note, None)
-                if note_event:
-                    note_event.end = self._update_accum_time(mido_msg.time)
-                    return note_event
-                else:
-                    print(f"No note to turn off: {mido_msg}")
+                # Handle as note_off
+                return self._handle_note_off(mido_msg.note, mido_msg.time)
             else:
-                if mido_msg.note in self._current_playing_notes:
-                    # make the note off event and return the note
-                    prev_playing_note_event = self._current_playing_notes.pop(
-                        mido_msg.note
-                    )
-                    prev_playing_note_event.end = self._accum_time + mido_msg.time
-                    return prev_playing_note_event
-                
-                self._current_playing_notes[mido_msg.note] = Note(
-                    mido_msg.note,
-                    mido_msg.velocity,
-                    self._update_accum_time(mido_msg.time),
-                    None,
-                )
+                return self._handle_note_on(mido_msg.note, mido_msg.velocity, mido_msg.time)
         elif mido_msg.type == "note_off":
-            note_event = self._current_playing_notes.pop(mido_msg.note, None)
-            if note_event:
-                note_event.end = self._update_accum_time(mido_msg.time)
-                return note_event
-            else:
-                print(f"No note to turn off: {mido_msg}")
+            return self._handle_note_off(mido_msg.note, mido_msg.time)
         else:
-            # print(f"Unknown message type: {mido_msg}")
             self._update_accum_time(mido_msg.time)
-
         return
+
+    def _handle_note_on(self, pitch, velocity, time):
+        """
+        Handles a note_on event, allowing overlapping notes.
+        """
+        if pitch not in self._current_playing_notes:
+            self._current_playing_notes[pitch] = []
+
+        # Add the new note to the list of active notes for this pitch
+        new_note = Note(
+            pitch,
+            velocity,
+            self._update_accum_time(time),
+            None,
+        )
+        self._current_playing_notes[pitch].append(new_note)
+        return None  # New note is just added, no need to return immediately
+
+    def _handle_note_off(self, pitch, time):
+        """
+        Handles a note_off event, ending the earliest active note for the pitch.
+        """
+        if pitch in self._current_playing_notes and self._current_playing_notes[pitch]:
+            # End the earliest note for this pitch
+            note_event = self._current_playing_notes[pitch].pop(0)
+            note_event.end = self._update_accum_time(time)
+            # Clean up if no more notes are playing for this pitch
+            if not self._current_playing_notes[pitch]:
+                del self._current_playing_notes[pitch]
+            return note_event
+        else:
+            print(f"No note to turn off: pitch={pitch}, time={time}")
+
 
     def _update_accum_time(self, time: int) -> int:
         """

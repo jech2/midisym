@@ -11,7 +11,7 @@ from ..parser.utils import get_ticks_to_seconds_grid
 from ..constants import MIDI_MAX
 
 def get_symbolic_features(sym_music_obj: SymMusicContainer, sym_data_type: str, keys = ['mean_IOI', 'mean_IOI_below_middle_C', 'global_tempo', 'avg_velocity', 'rhythmic_intensity', 'rhythmic_density', 'voice_number', 'grooving_similarity', 'pitch_class_entropy-1bar', 
-                                                                                        'pitch_class_entropy-4bar']):
+                                                                                        'pitch_class_entropy-4bar'], select_inst: list = None):
     """Get symbolic features from symbolic music object
 
     Args:
@@ -22,12 +22,13 @@ def get_symbolic_features(sym_music_obj: SymMusicContainer, sym_data_type: str, 
         dict: dictionary of features
     """
     features = {}
-    all_notes = get_all_notes(sym_music_obj, exclude_drum=True)
+    all_notes = get_all_notes(sym_music_obj, exclude_drum=True, select_inst=select_inst)
     tick_to_seconds = get_ticks_to_seconds_grid(sym_music_obj)
     q_sym_music_obj, grid = make_grid_quantized_notes(
         sym_obj=sym_music_obj,
         sym_data_type=sym_data_type,
     )
+    q_sym_music_obj.instruments = [inst for i, inst in enumerate(q_sym_music_obj.instruments) if i in select_inst]
     
     if 'mean_IOI' in keys:
         features['mean_IOI'] = get_mean_IOI(all_notes, tick_to_seconds)

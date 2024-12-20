@@ -13,7 +13,7 @@ import numpy as np
 from ..parser.utils import get_ticks_to_seconds_grid
 from ..analysis.chord.chord_event import ChordEvent
 
-from ..converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET, MELODY, ARRANGEMENT
+from ..converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET, POP1k7_MELODY, POP1k7_ARRANGEMENT
 
 def sym_to_pr_mat(sym_obj: SymMusicContainer, sym_data_type="analyzed performance MIDI"):
     sym_obj, grid = make_grid_quantized_notes(
@@ -37,6 +37,7 @@ def make_grid_quantized_note_prmat(sym_obj: SymMusicContainer,
     pr_mat = np.zeros((len(grid), MIDI_MAX), dtype=np.int64)
     for inst_idx, inst in enumerate(sym_obj.instruments):
         if inst_idx not in inst_ids:
+            print(f"Skipping instrument {inst_idx}, not in {inst_ids}")
             continue
         
         for note in inst.notes:
@@ -217,7 +218,7 @@ def get_absolute_time_mat(sym_obj: SymMusicContainer, pr_res=PR_RES, add_chord_l
             all_markers = get_all_marker_start_end_time(sym_obj, piano_roll_xs)
             all_markers_sec = [(marker[0], ticks_to_seconds[marker[1]], ticks_to_seconds[marker[2]]) for marker in all_markers if marker[1] < len(ticks_to_seconds) and marker[2] < len(ticks_to_seconds)]
 
-            if idx == MELODY:
+            if idx == POP1k7_MELODY:
                 prev_chord = None
                 for i, marker in enumerate(all_markers_sec):
                     text, start, end = marker

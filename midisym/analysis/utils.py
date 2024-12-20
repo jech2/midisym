@@ -148,11 +148,14 @@ def get_inpainted_pos_notes(
     return notes
 
 
-def get_all_notes(sym_music_obj: SymMusicContainer, exclude_drum: bool = True) -> list:
+def get_all_notes(sym_music_obj: SymMusicContainer, exclude_drum: bool = True, select_inst: list = None) -> list:
     all_notes = []
-    for inst in sym_music_obj.instruments:
+    for i, inst in enumerate(sym_music_obj.instruments):
+        if select_inst is not None and i not in select_inst:
+            continue
         if exclude_drum and inst.is_drum:
             continue
+        print('add inst', i)
         all_notes.extend(inst.notes)
 
     all_notes = set(all_notes)
