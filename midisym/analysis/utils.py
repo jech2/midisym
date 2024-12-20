@@ -155,7 +155,6 @@ def get_all_notes(sym_music_obj: SymMusicContainer, exclude_drum: bool = True, s
             continue
         if exclude_drum and inst.is_drum:
             continue
-        print('add inst', i)
         all_notes.extend(inst.notes)
 
     all_notes = set(all_notes)
