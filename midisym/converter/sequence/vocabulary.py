@@ -8,6 +8,8 @@ from midisym.constants import PITCH_NAME_TO_ID, PITCH_ID_TO_NAME
 from midisym.parser.midi import MidiParser
 from midisym.parser.container import SymMusicContainer, TempoChange, Marker, Note, Instrument
 
+from midisym.parser.utils import parse_chord    
+
 import pickle
 
 def find_nearest_bin(array, value):
@@ -173,20 +175,7 @@ class REMILikeCNE:
                     all_event_seq.append(self.get_tempo_token('Conti'))
                 prev_tempo = event.tempo
             elif isinstance(event, Marker):
-                if chord_style == 'pop909':
-                    root, chord = event.text.split('_')[-1].split(":")
-                elif chord_style == 'chorder':
-                    root, chord, bass = event.text.split('_')
-                    if chord == 'bpm':
-                        continue #ignore bpm marker
-                elif chord_style == 'maj_min':
-                    # majmin style
-                    if 'maj' in event.text:
-                        root = event.text.split('maj')
-                        chord = 'M'
-                    elif 'min' in event.text:
-                        root = event.text.split('min')
-                        chord = 'm'
+                root, chord, bass = parse_chord(event.text, chord_style)
                 all_event_seq.append(self.get_chord_token(PITCH_NAME_TO_ID[root], chord))
             elif isinstance(event, Note):
                 if event.end == event.start:

@@ -52,4 +52,29 @@ def get_ticks_to_seconds_grid(midi_obj: SymMusicContainer) -> np.array:
 
     return ticks_to_seconds
 
+
+def parse_chord(chord_text, chord_style):
+    bass = None
+    try:
+        if chord_style == 'pop909':
+            if chord_text == 'N':
+                return 'N', None, None
+            root, chord = chord_text.split('_')[-1].split(":")
+            if '/' in chord:
+                chord, _ = chord.split('/')
+                # TODO: handle bass
+        elif chord_style == 'chorder':
+            root, chord, bass = chord_text.split('_')
+        elif chord_style == 'maj_min':
+            # majmin style
+            if 'maj' in chord_text:
+                root = chord_text.split('maj')[0]
+                chord = 'M'
+            elif 'min' in chord_text:
+                root = chord_text.split('min')[0]
+                chord = 'm'
+    except:
+        raise ValueError(f"Cannot parse chord {chord_text} with style {chord_style}")
+    return root, chord, bass
+
     

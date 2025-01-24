@@ -13,7 +13,7 @@ symusic = "^0.5.2"
 pytest-benchmark = "^4.0.0"
 miditoolkit = "^1.0.1"
 pretty-midi = "^0.2.10"
-pandas = "^2.2.2"
+pandas = "^2.1.0"
 partitura = "^1.5.0"
 
 
