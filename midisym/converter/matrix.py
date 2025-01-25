@@ -300,7 +300,7 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
                 ls_mat[start_idx, pitch] = ONSET
                 ls_mat[start_idx+1:end_idx, pitch] = SUSTAIN
 
-    piano_rolls = [ls_mat, arr_mat]
+    piano_rolls = [arr_mat, ls_mat]
     return piano_rolls, grid
 
 def pianoroll2notes(piano_rolls, ticks_per_beat, pr_res=32, unit='Hz'):
