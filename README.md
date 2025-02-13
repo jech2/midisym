@@ -3,7 +3,7 @@ MIDISym is a Python library that reads, analyses, converts any symbolic music fo
 
 ## Installation
 ```bash
-pip install midisym
+pip install .
 
 ```
 
