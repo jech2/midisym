@@ -257,7 +257,7 @@ def get_absolute_time_mat(sym_obj: SymMusicContainer, pr_res=PR_RES, add_chord_l
 # input midi inst: melody, bridge, arrangement 순서
 # output: (melody + bridge) + chord, (melody + bridge) + arrangement
 
-def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_pr=True, chord_style='chorder', sym_data_type="analyzed performance MIDI -- grid from ticks", melody_inst_ids=[MELODY], arrangement_ins_ids=[MELODY, BRIDGE, PIANO]):  
+def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_pr=True, chord_style='chorder', sym_data_type="analyzed performance MIDI -- grid from ticks", melody_ins_ids=[MELODY], arrangement_ins_ids=[MELODY, BRIDGE, PIANO]):  
     sym_obj, grid = make_grid_quantized_notes(
         sym_obj=sym_obj,
         sym_data_type=sym_data_type,
@@ -266,7 +266,7 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
     print(f"Grid shape: {grid.shape}")
 
     # dump the grid quantized notes
-    ls_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=melody_inst_ids)
+    ls_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=melody_ins_ids)
     arr_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=arrangement_ins_ids)
 
         
