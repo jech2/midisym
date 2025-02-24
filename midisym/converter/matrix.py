@@ -232,7 +232,7 @@ def get_absolute_time_mat(sym_obj: SymMusicContainer, pr_res=PR_RES, add_chord_l
                     else:
                         from midisym.parser.utils import parse_chord    
                         root, quality, bass = parse_chord(text, chord_style)
-                        if root == 'N':
+                        if root in ['N', None]:
                             if prev_chord is not None:
                                 root, quality, bass = prev_chord
                             else:
@@ -282,7 +282,7 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
             else:
                 from midisym.parser.utils import parse_chord    
                 root, quality, bass = parse_chord(text, chord_style)
-                if root == 'N':
+                if root in ['N', None]:
                     if prev_chord is not None:
                         root, quality, bass = prev_chord
                     else:
