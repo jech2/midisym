@@ -347,7 +347,7 @@ def pianoroll2notes(piano_rolls, ticks_per_beat, pr_res=32, unit='Hz'):
                         start = round(onset_times[p] * ticks_per_beat * 2 / pr_res)
                         end = round((offset_times[p] + 1) * ticks_per_beat * 2 / pr_res)
                     elif unit == 'quantize_grid':
-                        if offset_times[p] + 1 > len(grid):
+                        if offset_times[p] + 1 >= len(grid):
                             continue
                         start = grid[onset_times[p]]
                         end = grid[offset_times[p] + 1]
