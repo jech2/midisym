@@ -39,6 +39,19 @@ class REMILikeCNE:
         self.chord_mapping = {
             'maj': 'M',
             'min': 'm',
+            'maj7': 'M7',
+            'min7': 'm7',
+            'maj6': 'M',
+            'min6': 'm',
+            'aug': '+',
+            'dim': 'o',
+            'dim7': 'o7',
+            'hdim7': '/o7',
+            'minmaj7': 'm',
+            'maj9': 'M',
+            'min9': 'm',
+            'min11': 'm',
+            '9': 'M'
         }
 
         self.vocab = self.make_vocabulary()
@@ -73,7 +86,7 @@ class REMILikeCNE:
 
     def get_chord_token(self, root, chord):
         if not chord in self.chords:
-            if root == 'N' and chord == 'N':
+            if root in ["N", None] and chord in ['N', None]:
                 return 'Chord_None_None'
             if chord in self.chord_mapping:
                 chord = self.chord_mapping[chord]
@@ -379,19 +392,7 @@ class REMILikeCNE:
                             tokenized_seq.append(self.get_tempo_token('Conti'))
                         prev_tempo = event.tempo
                     elif isinstance(event, Marker):
-                        if chord_style == 'pop909':
-                            root, chord = event.text.split('_')[-1].split(":")
-                        elif chord_style == 'chorder':
-                            root, chord, bass = event.text.split('_')
-                        elif chord_style == 'maj_min':
-                            # majmin style
-                            if 'maj' in event.text:
-                                root = event.text.split('maj')[0]
-                                chord = 'M'
-                            elif 'min' in event.text:
-                                root = event.text.split('min')[0]
-                                chord = 'm'
-                                
+                        root, chord, bass = parse_chord(event.text, chord_style)         
                         if prev_chord != event.text:
                             tokenized_seq.append(self.get_chord_token(PITCH_NAME_TO_ID[root], chord))
                         else:

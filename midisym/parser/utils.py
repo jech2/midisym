@@ -58,11 +58,13 @@ def parse_chord(chord_text, chord_style):
     try:
         if chord_style == 'pop909':
             if chord_text == 'N':
-                return 'N', None, None
+                return None, None, None
             root, chord = chord_text.split('_')[-1].split(":")
             if '/' in chord:
                 chord, _ = chord.split('/')
                 # TODO: handle bass
+            if '(' in chord:
+                chord, _ = chord.split('(')
         elif chord_style == 'chorder':
             root, chord, bass = chord_text.split('_')
         elif chord_style == 'maj_min':

@@ -67,6 +67,7 @@ PITCH_NAME_TO_ID = {
     "Bb": 10,
     "B": 11,
     "N": "N",
+    None: "N"
 }
 
 MAJOR_NAMES = ["M", "Maj", "Major", "maj", "major"]
