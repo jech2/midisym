@@ -268,39 +268,41 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
     # dump the grid quantized notes
     ls_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=melody_ins_ids)
     arr_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=arrangement_ins_ids)
-
+    chord_mat = np.zeros_like(ls_mat) # chord only matrix
         
+    all_markers = get_all_marker_start_end_time(sym_obj, grid)
+    # all_markers_sec = [(marker[0], ticks_to_seconds[marker[1]], ticks_to_seconds[marker[2]]) for marker in all_markers if marker[1] < len(ticks_to_seconds) and marker[2] < len(ticks_to_seconds)]
+
+    prev_chord = None
+    for i, marker in enumerate(all_markers):
+        text, start, end = marker
+        if 'bpm' in text:
+            continue
+        else:
+            from midisym.parser.utils import parse_chord    
+            root, quality, bass = parse_chord(text, chord_style)
+            if root in ['N', None]:
+                if prev_chord is not None:
+                    root, quality, bass = prev_chord
+                else:
+                    continue
+            chord = ChordEvent(root, quality, -1, -1, None)
+            chord_pitches = chord.to_pitches(as_name=False)
+            chord_pitches = [pitch - PITCH_OFFSET for pitch in chord_pitches]
+            chord_pitches = [pitch - CHORD_OFFSET for pitch in chord_pitches if pitch - CHORD_OFFSET >= 0] # not to make the overlap with melody
+            prev_chord = (root, quality, bass)
+    
+        for pitch in chord_pitches:
+            start_idx = np.where(grid == start)[0][0]
+            end_idx = np.where(grid == end)[0][0]
+            # piano_roll[start_idx:end_idx, pitch] = 100
+            chord_mat[start_idx, pitch] = ONSET
+            chord_mat[start_idx+1:end_idx, pitch] = SUSTAIN
+            
     if add_chord_labels_to_pr:
-        all_markers = get_all_marker_start_end_time(sym_obj, grid)
-        # all_markers_sec = [(marker[0], ticks_to_seconds[marker[1]], ticks_to_seconds[marker[2]]) for marker in all_markers if marker[1] < len(ticks_to_seconds) and marker[2] < len(ticks_to_seconds)]
-
-        prev_chord = None
-        for i, marker in enumerate(all_markers):
-            text, start, end = marker
-            if 'bpm' in text:
-                continue
-            else:
-                from midisym.parser.utils import parse_chord    
-                root, quality, bass = parse_chord(text, chord_style)
-                if root in ['N', None]:
-                    if prev_chord is not None:
-                        root, quality, bass = prev_chord
-                    else:
-                        continue
-                chord = ChordEvent(root, quality, -1, -1, None)
-                chord_pitches = chord.to_pitches(as_name=False)
-                chord_pitches = [pitch - PITCH_OFFSET for pitch in chord_pitches]
-                chord_pitches = [pitch - CHORD_OFFSET for pitch in chord_pitches if pitch - CHORD_OFFSET >= 0] # not to make the overlap with melody
-                prev_chord = (root, quality, bass)
+        ls_mat += chord_mat
         
-            for pitch in chord_pitches:
-                start_idx = np.where(grid == start)[0][0]
-                end_idx = np.where(grid == end)[0][0]
-                # piano_roll[start_idx:end_idx, pitch] = 100
-                ls_mat[start_idx, pitch] = ONSET
-                ls_mat[start_idx+1:end_idx, pitch] = SUSTAIN
-
-    piano_rolls = [arr_mat, ls_mat]
+    piano_rolls = [arr_mat, ls_mat, chord_mat]
     return piano_rolls, grid
 
 def pianoroll2notes(piano_rolls, ticks_per_beat, pr_res=32, unit='Hz'):
