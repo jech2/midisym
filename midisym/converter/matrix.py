@@ -257,7 +257,7 @@ def get_absolute_time_mat(sym_obj: SymMusicContainer, pr_res=PR_RES, add_chord_l
 # input midi inst: melody, bridge, arrangement 순서
 # output: (melody + bridge) + chord, (melody + bridge) + arrangement
 
-def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_pr=True, chord_style='chorder', sym_data_type="analyzed performance MIDI -- grid from ticks", melody_ins_ids=[MELODY], arrangement_ins_ids=[MELODY, BRIDGE, PIANO]):  
+def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_pr=True, chord_style='chorder', sym_data_type="analyzed performance MIDI -- grid from ticks"):  
     sym_obj, grid = make_grid_quantized_notes(
         sym_obj=sym_obj,
         sym_data_type=sym_data_type,
@@ -266,9 +266,13 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
     print(f"Grid shape: {grid.shape}")
 
     # dump the grid quantized notes
-    ls_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=melody_ins_ids)
-    arr_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=arrangement_ins_ids)
-    chord_mat = np.zeros_like(ls_mat) # chord only matrix
+    track_mat = []
+    for inst_idx, inst in enumerate(sym_obj.instruments):
+        track_mat.append(make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=[inst_idx]))
+        
+    # ls_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=melody_ins_ids)
+    # arr_mat = make_grid_quantized_note_prmat(sym_obj, grid, value='onset_frame', pitch_range=(21, 108), inst_ids=arrangement_ins_ids)
+    chord_mat = np.zeros_like(track_mat[0]) # chord only matrix
         
     all_markers = get_all_marker_start_end_time(sym_obj, grid)
     # all_markers_sec = [(marker[0], ticks_to_seconds[marker[1]], ticks_to_seconds[marker[2]]) for marker in all_markers if marker[1] < len(ticks_to_seconds) and marker[2] < len(ticks_to_seconds)]
@@ -299,10 +303,10 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
             chord_mat[start_idx, pitch] = ONSET
             chord_mat[start_idx+1:end_idx, pitch] = SUSTAIN
             
-    if add_chord_labels_to_pr:
-        ls_mat += chord_mat
+    # if add_chord_labels_to_pr:
+        # ls_mat += chord_mat
         
-    piano_rolls = [arr_mat, ls_mat, chord_mat]
+    piano_rolls = {'track': track_mat, 'chord': chord_mat}
     return piano_rolls, grid
 
 def pianoroll2notes(piano_rolls, ticks_per_beat, pr_res=32, unit='Hz'):
