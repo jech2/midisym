@@ -16,6 +16,8 @@ from ..analysis.chord.chord_event import ChordEvent
 from ..converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET, POP1k7_MELODY, POP1k7_ARRANGEMENT
 from ..parser.container import Note, Instrument
 from ..parser.midi import MidiParser
+from ..parser.utils import parse_chord    
+from ..analysis.chord.chord_interval import ChordInterval 
 
 def sym_to_pr_mat(sym_obj: SymMusicContainer, sym_data_type="analyzed performance MIDI"):
     sym_obj, grid = make_grid_quantized_notes(
@@ -283,7 +285,6 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
         if 'bpm' in text:
             continue
         else:
-            from midisym.parser.utils import parse_chord    
             root, quality, bass = parse_chord(text, chord_style)
             if root in ['N', None]:
                 if prev_chord is not None:
@@ -302,12 +303,50 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
             # piano_roll[start_idx:end_idx, pitch] = 100
             chord_mat[start_idx, pitch] = ONSET
             chord_mat[start_idx+1:end_idx, pitch] = SUSTAIN
-            
-    # if add_chord_labels_to_pr:
-        # ls_mat += chord_mat
         
-    piano_rolls = {'track': track_mat, 'chord': chord_mat}
+    n_beats = len(grid) // 4
+    polydis_chord_mat = np.zeros((n_beats, 36))
+    for i, marker in enumerate(all_markers):
+        text, start, end = marker
+        # beat level label
+        current_beat = start // sym_obj.ticks_per_beat # n_th beat
+        polydis_chord_mat[current_beat] = chord_labels_to_one_hot(text, chord_style=chord_style)
+        
+    piano_rolls = {'track_mat': track_mat, 'chord_mat': chord_mat, 'polydis_chord_mat': polydis_chord_mat}
     return piano_rolls, grid
+
+
+def pitch_to_chord_polydis_chord_input(pitches, root_number, bass_number):
+    chroma = np.zeros(12)
+    for pitch in pitches:
+        chroma[pitch % 12] = 1
+    
+    root_one_hot = np.zeros(12)
+    root_one_hot[root_number % 12] = 1
+    
+    bass_one_hot = np.zeros(12)
+    bass_one_hot[bass_number % 12] = 1
+    
+    return np.concatenate([root_one_hot, chroma, bass_one_hot])
+
+
+def chord_labels_to_one_hot(chd_str, chord_style='pop909'):
+    root, quality, bass = parse_chord(chd_str, chord_style=chord_style)
+    chord = ChordEvent(root, quality, 0, 16, bass)
+    if root not in ['None', None]:
+        ci = ChordInterval()
+        root_number = ci.pitch_to_midi_pitch(root, 4)
+        if bass is not None:
+            bass_number = ci.pitch_to_midi_pitch(bass, 4)
+        else:
+            bass_number = root_number
+
+        pitches = chord.to_pitches(as_name=False)
+    
+        return pitch_to_chord_polydis_chord_input(pitches, root_number, bass_number)
+    else:
+        # zeros
+        return np.zeros(36)
 
 def pianoroll2notes(piano_rolls, ticks_per_beat, pr_res=32, unit='Hz'):
     # piano roll is (T, 88)
