@@ -205,7 +205,7 @@ class SymMusicContainer:
         self.instruments = [Instrument().from_symusic(track) for track in score.tracks]
         self.markers = [Marker(marker.text, marker.time) for marker in score.markers]
         
-        print('from_symusic, currently key signature is not supported')
+        print('from_symusic, currently key signature is not supported. Also, symusic ticks per quarter might not be accurate')
         return self
 
 

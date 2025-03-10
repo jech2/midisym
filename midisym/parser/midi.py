@@ -16,6 +16,7 @@ from .container import (
 )
 from ..constants import MAX_CHANNELS, DEFAULT_BPM, KEY_NUMBER_TO_MIDO_KEY_NAME
 from symusic import Score
+from .utils import resample_ticks_per_beat
 
 
 # We "hack" mido's Note_on messages checks to allow to add an "end" attribute, that
@@ -32,6 +33,7 @@ class MidiParser:
         use_symusic: bool = False,
         sym_music_container: SymMusicContainer | None = None,
         verbose: bool = False,
+        ticks_per_beat: int | None = None,
     ):
         # for parsing
         self.use_symusic = use_symusic
@@ -41,6 +43,10 @@ class MidiParser:
             self.sym_music_container = self.parse(file_path)
         elif sym_music_container:
             self.sym_music_container = sym_music_container
+            
+        if ticks_per_beat != None and ticks_per_beat != self.sym_music_container.ticks_per_beat:
+            print('resampling the ticks per beat as ', ticks_per_beat)
+            self.sym_music_container = resample_ticks_per_beat(self.sym_music_container, ticks_per_beat)
 
     def init_parser(self):
         self._current_instrument_name = ""

@@ -79,4 +79,26 @@ def parse_chord(chord_text, chord_style):
         raise ValueError(f"Cannot parse chord {chord_text} with style {chord_style}")
     return root, chord, bass
 
+def resample_ticks_per_beat(sym_obj: SymMusicContainer, ticks_per_beat: int):
+    """ 
+    resample the ticks per beat of a sym_obj and all its notes, tempo changes, and markers
+    """
+    ori_ticks_per_beat = sym_obj.ticks_per_beat
+    sym_obj.ticks_per_beat = ticks_per_beat
+    # note
+    for inst in sym_obj.instruments:
+        for note in inst.notes:
+            note.start = note.start * ticks_per_beat // ori_ticks_per_beat
+            note.end = note.end * ticks_per_beat // ori_ticks_per_beat
+    # tempo
+    for tempo in sym_obj.tempo_changes:
+        tempo.time = tempo.time * ticks_per_beat // ori_ticks_per_beat
     
+    # marker
+    for marker in sym_obj.markers:
+        marker.time = marker.time * ticks_per_beat // ori_ticks_per_beat
+        
+    # max tick
+    sym_obj.max_tick = sym_obj.max_tick * ticks_per_beat // ori_ticks_per_beat
+    
+    return sym_obj 

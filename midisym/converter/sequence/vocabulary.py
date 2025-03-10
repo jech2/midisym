@@ -8,7 +8,7 @@ from midisym.constants import PITCH_NAME_TO_ID, PITCH_ID_TO_NAME
 from midisym.parser.midi import MidiParser
 from midisym.parser.container import SymMusicContainer, TempoChange, Marker, Note, Instrument
 
-from midisym.parser.utils import parse_chord    
+from midisym.parser.utils import parse_chord, resample_ticks_per_beat
 
 import pickle
 
@@ -28,6 +28,7 @@ class REMILikeCNE:
         self.velocity_bins = np.arange(4, 128, 3)
         self.inst = ['Midi', 'Skyline'] # arrangement and melody
         self.chords = ['+', '/o7', '7', 'M', 'M7', 'm', 'm7', 'o', 'o7', 'sus2', 'sus4'] # 11
+        self.cne_default_ticks = 480 # the duration tokens are based on 480 ticks per beat. 
         
         self.other_tokens = [
             'Chord_Conti_Conti',
@@ -338,8 +339,11 @@ class REMILikeCNE:
                         
         return sym_obj
     
-    def word_to_midi(self, word_seq: list[str], out_fp: str, bar_resolution: int=16, tick_per_beat: int=480, program: int=0, use_velocity: bool=True, save_midi: bool=True):
-        sym_obj = self.word_to_sym_obj(word_seq, bar_resolution, tick_per_beat, program, use_velocity)
+    def word_to_midi(self, word_seq: list[str], out_fp: str, bar_resolution: int=16, ticks_per_beat: int=480, program: int=0, use_velocity: bool=True, save_midi: bool=True):
+        sym_obj = self.word_to_sym_obj(word_seq, bar_resolution, self.cne_default_ticks, program, use_velocity)
+        if self.cne_default_ticks != ticks_per_beat:
+            sym_obj = resample_ticks_per_beat(sym_obj, ticks_per_beat)
+            
         parser = MidiParser(sym_music_container=sym_obj)
         if save_midi:
             parser.dump(out_fp)
@@ -421,6 +425,9 @@ class REMILikeCNE:
         return None
     
     def tokenize_piece(self, sym_obj: SymMusicContainer, sym_data_type: str, chord_style: str='pop909', out_fn=None, use_velocity_for_arrangement=True):
+        if sym_obj.ticks_per_beat != self.cne_default_ticks:
+            sym_obj = resample_ticks_per_beat(sym_obj, self.cne_default_ticks)        
+        
         q_sym_obj, grid = make_grid_quantized_notes(
         sym_obj=sym_obj,
         sym_data_type=sym_data_type,
@@ -499,7 +506,7 @@ class REMILikeCNE:
     
         return mel_bar_idxs, arr_bar_idxs
         
-    def mel_arr_joined_tokens_to_midi(self, tokenized_piece: list[int], out_fp: str, mel_bar_idxs: list[tuple[int, int]]=None, arr_bar_idxs: list[tuple[int, int]]=None, use_velocity_for_arrangement=True, save_track_midi=True):
+    def mel_arr_joined_tokens_to_midi(self, tokenized_piece: list[int], out_fp: str, mel_bar_idxs: list[tuple[int, int]]=None, arr_bar_idxs: list[tuple[int, int]]=None, use_velocity_for_arrangement=True, save_track_midi=True, ticks_per_beat=480):
         
         melody_tokens = []
         arrangment_tokens = []
@@ -515,8 +522,8 @@ class REMILikeCNE:
             arr_bar_start, arr_bar_end = arr_bar_idx
             arrangment_tokens.extend(tokenized_piece[arr_bar_start:arr_bar_end])
             
-        mel_parser = self.word_to_midi([self.idx_to_token(tok) for tok in melody_tokens], out_fp=out_fp.replace(".mid", "_melody.mid"), program=1, use_velocity=False, save_midi=save_track_midi)
-        arr_parser = self.word_to_midi([self.idx_to_token(tok) for tok in arrangment_tokens], out_fp=out_fp.replace(".mid", "_arrangement.mid"), program=0, use_velocity=use_velocity_for_arrangement, save_midi=save_track_midi)
+        mel_parser = self.word_to_midi([self.idx_to_token(tok) for tok in melody_tokens], out_fp=out_fp.replace(".mid", "_melody.mid"), program=1, use_velocity=False, save_midi=save_track_midi, ticks_per_beat=ticks_per_beat)
+        arr_parser = self.word_to_midi([self.idx_to_token(tok) for tok in arrangment_tokens], out_fp=out_fp.replace(".mid", "_arrangement.mid"), program=0, use_velocity=use_velocity_for_arrangement, save_midi=save_track_midi, ticks_per_beat=ticks_per_beat)
         
         arr_parser.sym_music_container.instruments.append(
             mel_parser.sym_music_container.instruments[0]
