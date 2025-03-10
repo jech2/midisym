@@ -310,8 +310,10 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
         text, start, end = marker
         # beat level label
         current_beat = start // sym_obj.ticks_per_beat # n_th beat
-        polydis_chord_mat[current_beat] = chord_labels_to_one_hot(text, chord_style=chord_style)
-        
+        current_beat_end = end // sym_obj.ticks_per_beat
+        chord_vector = chord_labels_to_one_hot(text, chord_style=chord_style)  # shape (36,)
+        polydis_chord_mat[current_beat:current_beat_end] = chord_vector
+ 
     piano_rolls = {'track_mat': track_mat, 'chord_mat': chord_mat, 'polydis_chord_mat': polydis_chord_mat}
     return piano_rolls, grid
 
