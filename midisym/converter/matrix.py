@@ -6,7 +6,7 @@ from ..analysis.grid_quantize import (
 from ..analysis.utils import get_all_marker_start_end_time
 from ..analysis.chord.chord_event import chord_name_to_chroma
 
-from ..constants import PITCH_ID_TO_NAME, PITCH_RANGE, MIDI_MAX, MELODY, BRIDGE, PIANO
+from ..constants import PITCH_ID_TO_NAME, PITCH_RANGE, MIDI_MAX, MELODY, BRIDGE, PIANO, QUANTIZE_RESOLUTION
 from collections import Counter
 import numpy as np
 
@@ -303,8 +303,8 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
             # piano_roll[start_idx:end_idx, pitch] = 100
             chord_mat[start_idx, pitch] = ONSET
             chord_mat[start_idx+1:end_idx, pitch] = SUSTAIN
-        
-    n_beats = len(grid) // 4
+    
+    n_beats = len(grid) // QUANTIZE_RESOLUTION
     polydis_chord_mat = np.zeros((n_beats, 36))
     for i, marker in enumerate(all_markers):
         text, start, end = marker
