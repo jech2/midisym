@@ -28,7 +28,9 @@ def get_symbolic_features(sym_music_obj: SymMusicContainer, sym_data_type: str, 
         sym_obj=sym_music_obj,
         sym_data_type=sym_data_type,
     )
-    q_sym_music_obj.instruments = [inst for i, inst in enumerate(q_sym_music_obj.instruments) if i in select_inst]
+    
+    if select_inst is not None:
+        q_sym_music_obj.instruments = [inst for i, inst in enumerate(q_sym_music_obj.instruments) if i in select_inst]
     
     if 'mean_IOI' in keys:
         features['mean_IOI'] = get_mean_IOI(all_notes, tick_to_seconds)

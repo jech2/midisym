@@ -8,9 +8,9 @@ def test_calculate_transcription_measure():
 
     parser = MidiParser()
     # load midi file
-    midi_infilling_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/infilling_input.mid"
-    midi_ori_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/original.mid"
-    midi_inpainted_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/inpainted_large.mid"
+    midi_infilling_fn = "./tests/sample/Barbie Girl/infilling_input.mid"
+    midi_ori_fn = "./tests/sample/Barbie Girl/original.mid"
+    midi_inpainted_fn = "./tests/sample/Barbie Girl/inpainted_large.mid"
 
     midi_obj_ori = parser.parse(midi_ori_fn)
     midi_obj_inpainted = parser.parse(midi_inpainted_fn)

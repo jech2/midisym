@@ -20,7 +20,9 @@ def test_grid_time_mat(const_tempo_piano_chord_midi_parser):
     from midisym.converter.matrix import get_grid_quantized_time_mat
 
 
-    piano_rolls, _ = get_grid_quantized_time_mat(sym_obj, chord_style=chord_style, add_chord_labels_to_pr=add_chord_labels_to_pr, sym_data_type=sym_data_type, melody_ins_ids=[0], arrangement_ins_ids=[1, 2])
+    piano_rolls, _ = get_grid_quantized_time_mat(sym_obj, chord_style=chord_style, add_chord_labels_to_pr=add_chord_labels_to_pr, sym_data_type=sym_data_type)
+
+    piano_rolls = piano_rolls['track_mat']
 
     ls_mat = piano_rolls[0]
     arr_mat = piano_rolls[1]
@@ -33,3 +35,5 @@ def test_grid_time_mat(const_tempo_piano_chord_midi_parser):
 
     from midisym.converter.matrix import pianoroll2midi
     pianoroll2midi(arr_mat, ls_mat, arrangement=None, out_fp='./tests/sample/pop909_output.mid', pr_res=16, unit='quantize_grid')
+
+

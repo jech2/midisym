@@ -5,7 +5,7 @@ from midisym.analysis.utils import get_all_marker_start_end_time
 from midisym.analysis.chord.chord_event import ChordEvent
 from midisym.converter.matrix import get_absolute_time_mat
 
-from midisym.converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET, MELODY, ARRANGEMENT
+from midisym.converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET
 
 def test_absolute_time_mat(analyzed_performance_midi_parser_pop1k7):
     print(analyzed_performance_midi_parser_pop1k7)

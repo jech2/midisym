@@ -1,9 +1,9 @@
 def test_find_matching_inst():
 
     # load midi file
-    midi_infilling_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/infilling_input.mid"
-    midi_ori_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/original.mid"
-    midi_inpainted_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/inpainted_large.mid"
+    midi_infilling_fn = "tests/sample/Barbie Girl/infilling_input.mid"
+    midi_ori_fn = "tests/sample/Barbie Girl/original.mid"
+    midi_inpainted_fn = "tests/sample/Barbie Girl/inpainted_large.mid"
 
     from midisym.analysis.utils import check_exact_match_note_rate_fn
 
@@ -30,9 +30,9 @@ def test_get_inpainted_pos_notes(midi_parser):
 
     parser = MidiParser()
     # load midi file
-    midi_infilling_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/infilling_input.mid"
-    midi_ori_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/original.mid"
-    midi_inpainted_fn = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/inpainted_large.mid"
+    midi_infilling_fn = "tests/sample/Barbie Girl/infilling_input.mid"
+    midi_ori_fn = "tests/sample/Barbie Girl/original.mid"
+    midi_inpainted_fn = "tests/sample/Barbie Girl/inpainted_large.mid"
 
     midi_obj_infilling = parser.parse(midi_infilling_fn)
     midi_obj_ori = parser.parse(midi_ori_fn)

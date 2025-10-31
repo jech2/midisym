@@ -168,7 +168,7 @@ def edges_from_note_array(note_array):
                     edge_type.append(3)
 
     edges = np.array([edg_src, edg_dst])
-    edge_etypes = {0: "onset", 1: "consecutive", 2: "sustain"}
+    edge_etypes = {0: "onset", 1: "consecutive", 2: "sustain", 3: "nearest future onset"}
     edge_types = np.array([edge_etypes[x] for x in edge_type])
     return edges, edge_types
 

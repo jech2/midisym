@@ -95,7 +95,7 @@ def test_edges_csampler():
 
     edges = get_edges(sym_obj)
 
-    print(Counter(edges[2]))
+    print(Counter(edges[1]))
 
     all_notes = get_all_notes(sym_obj, exclude_drum=True)
     all_notes = sorted(all_notes, key=lambda x: x.start)

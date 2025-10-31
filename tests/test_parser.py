@@ -17,7 +17,7 @@ def test_check_valid_midi_processing(midi_parser):
     midi_parser.dump("out_midi.mid")
 
 
-def test_keysignature():
+def test_key_signature():
     from midisym.parser.container import KeySignature
 
     k_a = KeySignature("A", 0)
@@ -43,8 +43,8 @@ def test_instruments():
     # load midi file
     from midisym.parser.midi import MidiParser
 
-    midi_fn1 = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/infilling_input.mid"
-    midi_fn2 = "../2024_ismir/anticipatory_transformer/output_100k/Aqua/Barbie Girl/original.mid"
+    midi_fn1 = "tests/sample/Barbie Girl/infilling_input.mid"
+    midi_fn2 = "tests/sample/Barbie Girl/original.mid"
     parser = MidiParser()
     midi_obj1 = parser.parse(midi_fn1)
     midi_obj2 = parser.parse(midi_fn2)
