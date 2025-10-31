@@ -23,3 +23,10 @@ pytest = "^8.3.3"
 [build-system]
 requires = ["poetry-core", "numpy"]
 build-backend = "poetry.core.masonry.api"
+
+[project]
+name = "midisym"
+version = "0.1.0"
+description = "MIDI processing library for MIR research"
+authors = [{ name = "Eunjin Choi", email = "jech@kaist.ac.kr" }]
+dependencies = []
