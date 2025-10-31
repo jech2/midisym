@@ -1,12 +1,11 @@
 import numpy as np
-from midisym.parser.container import TempoChange, Marker, Note
+from midisym.parser.container import TempoChange, Marker, Note, SymMusicContainer, Instrument
 from midisym.analysis.grid_quantize import (
     make_grid_quantized_notes,
 )
 from midisym.constants import PITCH_NAME_TO_ID, PITCH_ID_TO_NAME
 
 from midisym.parser.midi import MidiParser
-from midisym.parser.container import SymMusicContainer, TempoChange, Marker, Note, Instrument
 
 from midisym.parser.utils import parse_chord, resample_ticks_per_beat
 
@@ -86,7 +85,7 @@ class REMILikeCNE:
         return f'Note_Duration_{nearest_duration}'
 
     def get_chord_token(self, root, chord):
-        if not chord in self.chords:
+        if chord not in self.chords:
             if root in ["N", None] and chord in ['N', None]:
                 return 'Chord_None_None'
             if chord in self.chord_mapping:

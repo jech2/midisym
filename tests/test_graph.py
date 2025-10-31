@@ -4,7 +4,6 @@ from midisym.analysis.utils import get_all_notes
 from collections import Counter
 import midisym.csamplers as csamplers
 import numpy as np
-import pandas as pd
 from midisym.converter.graph import edges_from_note_array
 
 
@@ -81,13 +80,8 @@ def test_benchmark_edges_graphmuse(benchmark):
 
 
 def test_edges_csampler():
-    import midisym.csamplers as csamplers
     from midisym.parser.midi import MidiParser
-    from midisym.analysis.utils import get_all_notes
-    import numpy as np
-    import pandas as pd
     from collections import Counter
-    from midisym.converter.graph import edges_from_note_array
 
     midi_parser = MidiParser("tests/sample/multi-instrumental.mid", use_symusic=True)
 

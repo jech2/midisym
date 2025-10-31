@@ -1,8 +1,6 @@
 from midisym.analysis.grid_quantize import (
     make_grid_quantized_notes,
 )
-import numpy as np
-from midisym.parser.container import TempoChange, Marker, Note
 
 def test_make_sequence(const_tempo_piano_chord_midi_parser):
     sym_obj = const_tempo_piano_chord_midi_parser.sym_music_container
@@ -29,7 +27,7 @@ def test_c_and_e_vocabulary():
     # for key, value in _vocab.items():
     #     print(key, value)
     
-    from midisym.converter.sequence.vocabulary import REMILikeCNE, find_nearest_bin
+    from midisym.converter.sequence.vocabulary import REMILikeCNE
     vocab = REMILikeCNE().vocab
     
     # save txt and check the diff

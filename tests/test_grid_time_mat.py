@@ -1,12 +1,6 @@
-import numpy as np
 
-from midisym.parser.utils import get_ticks_to_seconds_grid
-from midisym.analysis.utils import get_all_marker_start_end_time
-from midisym.analysis.chord.chord_event import ChordEvent
-from midisym.converter.matrix import get_absolute_time_mat, get_grid_quantized_time_mat, make_grid_quantized_notes, make_grid_quantized_note_prmat, visualize_pr_mat
+from midisym.converter.matrix import get_grid_quantized_time_mat, visualize_pr_mat
 
-from midisym.converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET
-from midisym.constants import MELODY, BRIDGE, PIANO
 
 
 def test_grid_time_mat(const_tempo_piano_chord_midi_parser):
@@ -17,7 +11,6 @@ def test_grid_time_mat(const_tempo_piano_chord_midi_parser):
     chord_style='pop909'
     sym_data_type="analyzed performance MIDI -- grid from ticks"
 
-    from midisym.converter.matrix import get_grid_quantized_time_mat
 
 
     piano_rolls, _ = get_grid_quantized_time_mat(sym_obj, chord_style=chord_style, add_chord_labels_to_pr=add_chord_labels_to_pr, sym_data_type=sym_data_type)

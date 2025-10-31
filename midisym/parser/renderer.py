@@ -7,7 +7,6 @@ from typing import Union
 
 from ..external import get_musescore_soundfont_path, download_musescore_soundfont
 from .midi import MidiParser
-from typing import Union
 
 
 def _check_soundfont(soundfont_path):

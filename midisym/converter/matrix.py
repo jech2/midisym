@@ -8,12 +8,11 @@ from ..analysis.chord.chord_event import chord_name_to_chroma
 
 from ..constants import PITCH_ID_TO_NAME, PITCH_RANGE, MIDI_MAX, MELODY, BRIDGE, PIANO, QUANTIZE_RESOLUTION
 from collections import Counter
-import numpy as np
 
 from ..parser.utils import get_ticks_to_seconds_grid
 from ..analysis.chord.chord_event import ChordEvent
 
-from ..converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET, POP1k7_MELODY, POP1k7_ARRANGEMENT
+from ..converter.constants import N_PITCH, PITCH_OFFSET, PR_RES, ONSET, SUSTAIN, CHORD_OFFSET, POP1k7_MELODY
 from ..parser.container import Note, Instrument
 from ..parser.midi import MidiParser
 from ..parser.utils import parse_chord    

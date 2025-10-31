@@ -10,7 +10,7 @@ from midisym.converter.matrix import (
     get_onset_matrix,
     get_most_common_onset_pattern,
 )
-from midisym.converter.matrix import make_grid_quantized_chord_prmat, get_onset_matrix_from_pr_mat, visualize_onset_mat
+from midisym.converter.matrix import make_grid_quantized_chord_prmat, visualize_onset_mat
 
 
 def test_get_grid_from_tempo_changes(analyzed_performance_midi_parser):

@@ -1,4 +1,4 @@
-from ..parser.container import SymMusicContainer, TempoChange
+from ..parser.container import SymMusicContainer
 import numpy as np
 import copy
 

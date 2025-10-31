@@ -1,6 +1,5 @@
 import miditoolkit
 from miditoolkit.midi.containers import Note, Instrument
-import numpy as np
 # from midi2audio import FluidSynth
 
 # pattern is 1, 3, 5, 7, 8

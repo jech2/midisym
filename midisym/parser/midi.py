@@ -1,6 +1,5 @@
 import os
 import mido
-from typing import List
 from pathlib import Path
 import functools
 import numpy as np

@@ -138,7 +138,6 @@ def test_grooving_similarity(midi_parser):
     # get the bar level onset features
     # sym to pr matrix
     from midisym.analysis.grid_quantize import make_grid_quantized_notes
-    from midisym.converter.matrix import get_onset_matrix
     from midisym.analysis.feature_extraction import get_grooving_similarity, get_voice_number, get_rhythmic_density
     
     
