@@ -4,6 +4,7 @@ from . import analysis
 
 from . import constants
 from . import external
+from .parser.renderer import write_audio
 
 # for convenience
 from .external import *

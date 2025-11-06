@@ -40,3 +40,10 @@ def quantized_midi_parser_pop2piano():
     file_path = './tests/sample/YHtysd6SKhA.qmidi.mid'
     midi_parser = MidiParser(file_path)
     return midi_parser
+
+@pytest.fixture
+def midi_parser_mpag_score_midi():
+    from midisym.parser.midi import MidiParser
+    file_path = './tests/sample/성탄찬송메들리 (안쉽게).mid'
+    midi_parser = MidiParser(file_path)
+    return midi_parser

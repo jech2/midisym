@@ -188,6 +188,71 @@ def time_to_ticks_perf_midi(
         time_seconds_as_tick = time_seconds / seconds_per_tick
         return int(round(time_seconds_as_tick))
 
+def ticks_to_time_perf_midi(
+    ticks: int, ticks_per_beat: int, tempo_changes: list
+) -> float:
+    """
+    MIDI ticks를 시간(초)으로 변환 (템포 변경 고려)
+    
+    Args:
+        ticks: 변환할 tick 값
+        tick_position: 이 tick의 절대 위치 (어느 위치부터 ticks만큼인지)
+        ticks_per_beat: beat당 ticks 수
+        tempo_changes: TempoChange 객체 리스트 (time 기준 정렬되어 있어야 함)
+    
+    Returns:
+        시간(초)
+    """
+    total_time = 0.0
+    remaining_ticks = ticks
+    current_tick_pos = 0
+    
+    # tempo_changes가 비어있으면 기본 템포 사용
+    if len(tempo_changes) == 1:
+        seconds_per_beat = 60.0 / tempo_changes[0].tempo
+        seconds_per_tick = seconds_per_beat / ticks_per_beat
+        return ticks * seconds_per_tick
+    
+    # 현재 위치의 템포 찾기
+    current_tempo = tempo_changes[0].tempo
+    tempo_idx = 0
+    for i, tc in enumerate(tempo_changes):
+        if tc.time <= current_tick_pos:
+            current_tempo = tc.tempo
+            tempo_idx = i
+        else:
+            break
+    
+    # 각 템포 구간별로 시간 계산
+    while remaining_ticks > 0:
+        # 다음 템포 변경 지점 찾기
+        next_tempo_change = None
+        if tempo_idx + 1 < len(tempo_changes):
+            next_tempo_change = tempo_changes[tempo_idx + 1]
+        
+        if next_tempo_change and next_tempo_change.time <= current_tick_pos + remaining_ticks:
+            # 다음 템포 변경 전까지의 ticks
+            ticks_in_section = next_tempo_change.time - current_tick_pos
+        else:
+            # 끝까지 현재 템포
+            ticks_in_section = remaining_ticks
+        
+        # 이 구간의 시간 계산
+        seconds_per_beat = 60.0 / current_tempo
+        seconds_per_tick = seconds_per_beat / ticks_per_beat
+        total_time += ticks_in_section * seconds_per_tick
+        
+        # 다음 구간으로
+        remaining_ticks -= ticks_in_section
+        current_tick_pos += ticks_in_section
+        
+        # 템포 업데이트
+        if next_tempo_change and remaining_ticks > 0:
+            tempo_idx += 1
+            current_tempo = next_tempo_change.tempo
+    
+    return total_time
+
 
 def ticks_to_time(ticks: int, ticks_per_beat: int, bpm: float) -> float:
     # 초당 tick 수(TPS) 계산
@@ -214,3 +279,48 @@ def get_all_marker_start_end_time(sym_obj: SymMusicContainer, grid: np.array) ->
         all_markers.append((marker.text, sym_obj.markers[-1].time, grid[-1]))
 
     return all_markers
+
+def extract_beats_downbeats(sym_obj: SymMusicContainer) -> tuple[list[float], list[float]]:
+    """
+    extract beats and downbeats (in seconds)
+    which involves tempo and time signature changes
+
+    return: beats, downbeats (list)
+    """
+    beats = []
+    downbeats = []
+    
+    current_tempo = sym_obj.tempo_changes[0].tempo
+    current_ts = (sym_obj.time_signature_changes[0].numerator, sym_obj.time_signature_changes[0].denominator)
+    current_ts_time = sym_obj.time_signature_changes[0].time
+    for ts in sym_obj.time_signature_changes[1:]:
+        current_ts_end_time = ts.time
+        pivot_note_length = current_ts[1] # denominator
+        beats_per_bar = current_ts[0] # numerator
+        current_beat_ticks = sym_obj.ticks_per_beat * ( 4 / pivot_note_length )
+        bts = (current_ts_time + np.arange(0, current_ts_end_time - current_ts_time, current_beat_ticks))
+        beats.extend(bts)
+
+        # beats_per_bar 씩 건너뛴 bts
+        dbs = bts[::beats_per_bar]
+        downbeats.extend(dbs)
+        current_ts_time = current_ts_end_time
+        current_ts = (ts.numerator, ts.denominator)
+
+    # last ts
+    last_ts_end_time = sym_obj.max_tick
+    pivot_note_length = current_ts[1] # denominator
+    beats_per_bar = current_ts[0] # numerator
+    current_beat_ticks = sym_obj.ticks_per_beat * ( 4 / pivot_note_length )
+    bts = (current_ts_time + np.arange(0, last_ts_end_time - current_ts_time, current_beat_ticks))
+    beats.extend(bts)
+
+    # beats_per_bar 씩 건너뛴 bts
+    dbs = bts[::beats_per_bar]
+    downbeats.extend(dbs)
+    
+    # ticks -> sec (we need tempo information)
+    beats = [ float(ticks_to_time_perf_midi(beat, sym_obj.ticks_per_beat, sym_obj.tempo_changes)) for beat in beats]
+    downbeats = [ float(ticks_to_time_perf_midi(downbeat, sym_obj.ticks_per_beat, sym_obj.tempo_changes)) for downbeat in downbeats]
+
+    return beats, downbeats
