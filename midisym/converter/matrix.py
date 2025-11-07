@@ -17,6 +17,7 @@ from ..parser.container import Note, Instrument
 from ..parser.midi import MidiParser
 from ..parser.utils import parse_chord    
 from ..analysis.chord.chord_interval import ChordInterval 
+from ..analysis.chord.chord_event import pitch_to_chord_polydis_chord_input, chord_labels_to_one_hot
 
 def sym_to_pr_mat(sym_obj: SymMusicContainer, sym_data_type="analyzed performance MIDI"):
     sym_obj, grid = make_grid_quantized_notes(
@@ -315,39 +316,6 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
  
     piano_rolls = {'track_mat': track_mat, 'chord_mat': chord_mat, 'polydis_chord_mat': polydis_chord_mat}
     return piano_rolls, grid
-
-
-def pitch_to_chord_polydis_chord_input(pitches, root_number, bass_number):
-    chroma = np.zeros(12)
-    for pitch in pitches:
-        chroma[pitch % 12] = 1
-    
-    root_one_hot = np.zeros(12)
-    root_one_hot[root_number % 12] = 1
-    
-    bass_one_hot = np.zeros(12)
-    bass_one_hot[bass_number % 12] = 1
-    
-    return np.concatenate([root_one_hot, chroma, bass_one_hot])
-
-
-def chord_labels_to_one_hot(chd_str, chord_style='pop909'):
-    root, quality, bass = parse_chord(chd_str, chord_style=chord_style)
-    chord = ChordEvent(root, quality, 0, 16, bass)
-    if root not in ['None', None]:
-        ci = ChordInterval()
-        root_number = ci.pitch_to_midi_pitch(root, 4)
-        if bass is not None:
-            bass_number = ci.pitch_to_midi_pitch(bass, 4)
-        else:
-            bass_number = root_number
-
-        pitches = chord.to_pitches(as_name=False)
-    
-        return pitch_to_chord_polydis_chord_input(pitches, root_number, bass_number)
-    else:
-        # zeros
-        return np.zeros(36)
 
 def pianoroll2notes(piano_rolls, ticks_per_beat, pr_res=32, unit='Hz'):
     # piano roll is (T, 88)

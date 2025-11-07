@@ -1,13 +1,47 @@
 from .chord_interval import ChordInterval
+from ...parser.utils import parse_chord
+import numpy as np
 
 def remove_character(input_string: str, character_to_remove: str) -> str:
     # 입력 문자열에서 특정 문자를 모두 제거하고 반환합니다.
     result_string = input_string.replace(character_to_remove, "")
     return result_string
 
-def chord_name_to_chroma(chord_name: str, chord_st_idx:int, chord_ed_idx: int):
+def pitch_to_chord_polydis_chord_input(pitches, root_number, bass_number):
+    chroma = np.zeros(12)
+    for pitch in pitches:
+        chroma[pitch % 12] = 1
+    
+    root_one_hot = np.zeros(12)
+    root_one_hot[root_number % 12] = 1
+    
+    bass_one_hot = np.zeros(12)
+    bass_one_hot[bass_number % 12] = 1
+    
+    return np.concatenate([root_one_hot, chroma, bass_one_hot])
+
+def chord_labels_to_one_hot(chd_str, chord_style='pop909'):
+    root, quality, bass = parse_chord(chd_str, chord_style=chord_style)
+    chord = ChordEvent(root, quality, 0, 16, bass)
+    if root not in ['None', None]:
+        ci = ChordInterval()
+        root_number = ci.pitch_to_midi_pitch(root, 4)
+        if bass is not None:
+            bass_number = ci.pitch_to_midi_pitch(bass, 4)
+        else:
+            bass_number = root_number
+
+        pitches = chord.to_pitches(as_name=False)
+    
+        return pitch_to_chord_polydis_chord_input(pitches, root_number, bass_number)
+    else:
+        # zeros
+        return np.zeros(36)
+
+def chord_name_to_chord_event(chord_name: str, chord_st_idx:int, chord_ed_idx: int):
     if chord_name != 'N':
         root, quality = chord_name.split(':')
+        bass = None
         if '/' in quality:
             quality, real_root = quality.split('/')
             chord = ChordEvent(root, quality, chord_st_idx, chord_ed_idx)
@@ -16,16 +50,22 @@ def chord_name_to_chroma(chord_name: str, chord_st_idx:int, chord_ed_idx: int):
                 if chord_number in real_root:
                     real_root_name = chord.to_pitches(as_name=True)[t]
                     # print(real_root_name)
-                    break       
+                    bass = real_root_name
+                    break    
     else:
         root = None
-        quality = None   
+        quality = None
+        bass = None  
 
     if root != None:
-        chord = ChordEvent(root, quality, chord_st_idx, chord_ed_idx)
-        if chord_ed_idx != 16:
-            chord_ed_idx -= 1
-        chord_chroma = chord.to_chroma()
+        return ChordEvent(root, quality, chord_st_idx, chord_ed_idx, bass)
+    else:
+        return None
+
+def chord_name_to_chroma(chord_name: str, chord_st_idx:int, chord_ed_idx: int):
+    chord_event = chord_name_to_chord_event(chord_name, chord_st_idx, chord_ed_idx)
+    if chord_event is not None:
+        chord_chroma = chord_event.to_chroma()
     else:
         chord_chroma = None
     
