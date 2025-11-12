@@ -6,3 +6,5 @@ def test_chord_event(midi_parser):
     c = chord_labels_to_one_hot("C:maj", chord_style='pop909')
     print(c, c.shape)
     
+    c = chord_labels_to_one_hot("C:maj", chord_style='pop1k7')
+    print(c, c.shape)

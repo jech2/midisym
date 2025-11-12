@@ -92,7 +92,7 @@ class MidiParser:
         """
         for i, track in enumerate(self.mido_obj.tracks):
             note_events = []
-            instrument = None
+            instrument = Instrument(0, channel=0)
             self._current_instrument_name = ""
             self._accum_time = 0  # reset accumulated time for every track
             for msg in track:
@@ -120,7 +120,7 @@ class MidiParser:
                     elif isinstance(event, Marker):
                         self.sym_music_container.markers.append(event)
 
-            if instrument and note_events:
+            if len(note_events) > 0:
                 instrument.notes = sorted(note_events, key=lambda x: (x.start, x.pitch))
                 self.sym_music_container.instruments.append(instrument)
                 self.sym_music_container.max_tick = max(
