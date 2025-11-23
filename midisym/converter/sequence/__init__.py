@@ -1,1 +1,5 @@
-from . import vocabulary
+# from . import vocabulary
+
+__all__ = [
+    "vocabulary"
+]
