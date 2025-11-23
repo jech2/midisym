@@ -1,8 +1,6 @@
-from midisym.analysis.grid_quantize import (
+from midisym.converter.matrix import (
     make_grid_quantized_notes,
     get_grid_from_tempo_changes,
-)
-from midisym.converter.matrix import (
     sym_to_pr_mat,
     make_grid_quantized_note_prmat,
     visualize_pr_mat,

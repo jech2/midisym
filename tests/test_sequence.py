@@ -1,4 +1,4 @@
-from midisym.analysis.grid_quantize import (
+from midisym.converter.matrix import (
     make_grid_quantized_notes,
 )
 

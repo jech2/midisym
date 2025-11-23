@@ -5,8 +5,7 @@ import itertools
 from ..parser.container import Note
 from ..parser.container import SymMusicContainer
 from ..analysis.utils import get_all_notes
-from ..converter.matrix import get_onset_matrix, make_grid_quantized_note_prmat
-from ..analysis.grid_quantize import make_grid_quantized_notes
+from ..converter.matrix import get_onset_matrix, make_grid_quantized_note_prmat, make_grid_quantized_notes
 from ..parser.utils import get_ticks_to_seconds_grid
 from ..constants import MIDI_MAX
 

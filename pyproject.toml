@@ -29,7 +29,10 @@ name = "midisym"
 version = "0.1.0"
 description = "MIDI processing library for MIR research"
 authors = [{ name = "Eunjin Choi", email = "jech@kaist.ac.kr" }]
-dependencies = []
+dependencies = [
+    "librosa>=0.11.0",
+    "pytest>=8.4.2",
+]
 
 [dependency-groups]
 dev = [

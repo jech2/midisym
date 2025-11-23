@@ -1,8 +1,6 @@
 import numpy as np
 from midisym.parser.container import TempoChange, Marker, Note, SymMusicContainer, Instrument
-from midisym.analysis.grid_quantize import (
-    make_grid_quantized_notes,
-)
+from midisym.converter.matrix import make_grid_quantized_notes
 from midisym.constants import PITCH_NAME_TO_ID, PITCH_ID_TO_NAME
 
 from midisym.parser.midi import MidiParser
