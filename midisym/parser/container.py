@@ -191,7 +191,10 @@ class SymMusicContainer:
         return self.__str__()
 
     def from_symusic(self, score: Score):
-        self.tick_per_beat = score.ticks_per_quarter
+        # Keep canonical field name used across the codebase.
+        self.ticks_per_beat = score.ticks_per_quarter
+        # Backward-compatible alias for any legacy references.
+        self.tick_per_beat = self.ticks_per_beat
         self.max_tick = score.end()
         self.tempo_changes = [
             TempoChange().from_symusic(tempo) for tempo in score.tempos
@@ -205,7 +208,7 @@ class SymMusicContainer:
         self.instruments = [Instrument().from_symusic(track) for track in score.tracks]
         self.markers = [Marker(marker.text, marker.time) for marker in score.markers]
         
-        print('from_symusic, currently key signature is not supported. Also, symusic ticks per quarter might not be accurate')
+        # print('from_symusic, currently key signature is not supported. Also, symusic ticks per quarter might not be accurate')
         return self
 
 
