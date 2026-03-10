@@ -2,6 +2,68 @@ from .container import SymMusicContainer
 import numpy as np
 import copy
 
+
+def _dedupe_time_signatures(time_signature_changes):
+    if not time_signature_changes:
+        return []
+
+    sorted_changes = sorted(time_signature_changes, key=lambda ts: (ts.time, ts.numerator, ts.denominator))
+    deduped = []
+    for ts in sorted_changes:
+        if deduped and (
+            deduped[-1].time == ts.time
+            and deduped[-1].numerator == ts.numerator
+            and deduped[-1].denominator == ts.denominator
+        ):
+            continue
+        deduped.append(ts)
+    return deduped
+
+
+def _bar_start_ticks(sym_obj: SymMusicContainer, max_bar_index: int) -> list[int]:
+    tpb = sym_obj.ticks_per_beat
+    ts_changes = _dedupe_time_signatures(sym_obj.time_signature_changes)
+    if not ts_changes or ts_changes[0].time != 0:
+        default_ts = copy.deepcopy(ts_changes[0]) if ts_changes else None
+        if default_ts is None:
+            from .container import TimeSignature
+
+            default_ts = TimeSignature(4, 4, 0)
+        else:
+            default_ts.time = 0
+        ts_changes = [default_ts] + ts_changes
+
+    target_tick = max(sym_obj.max_tick, tpb * 4 * max_bar_index)
+    bar_starts = [0]
+
+    for idx, ts in enumerate(ts_changes):
+        next_change_tick = ts_changes[idx + 1].time if idx + 1 < len(ts_changes) else None
+        ticks_per_bar = int(round(tpb * 4 * ts.numerator / ts.denominator))
+        current_tick = max(ts.time, bar_starts[-1])
+
+        if current_tick > bar_starts[-1]:
+            bar_starts.append(current_tick)
+
+        while len(bar_starts) <= max_bar_index:
+            next_bar_tick = current_tick + ticks_per_bar
+            if next_change_tick is not None and next_bar_tick > next_change_tick:
+                break
+            bar_starts.append(next_bar_tick)
+            current_tick = next_bar_tick
+
+        if len(bar_starts) > max_bar_index:
+            break
+
+    if len(bar_starts) <= max_bar_index:
+        last_ts = ts_changes[-1]
+        ticks_per_bar = int(round(tpb * 4 * last_ts.numerator / last_ts.denominator))
+        current_tick = bar_starts[-1]
+        while len(bar_starts) <= max_bar_index:
+            current_tick += ticks_per_bar
+            bar_starts.append(current_tick)
+
+    return bar_starts
+
 def seconds_to_ticks(seconds, ticks_per_beat, tempo, tempo_ref='microseconds'):
     """Convert seconds to MIDI ticks."""
 
@@ -108,10 +170,9 @@ def crop_midi_obj(midi_parser, start, end, select_inst=None, unit='tick'):
         start_tick = start
         end_tick = end
     elif unit == 'bar':
-        tpb = midi_parser.sym_music_container.ticks_per_beat
-        tick_per_bar = tpb * 4
-        start_tick = start * tick_per_bar
-        end_tick = end * tick_per_bar
+        bar_starts = _bar_start_ticks(midi_parser.sym_music_container, end)
+        start_tick = bar_starts[start]
+        end_tick = bar_starts[end]
     else:
         raise ValueError(f"unit must be 'tick' or 'bar'. Got {unit}")
 
@@ -121,15 +182,18 @@ def crop_midi_obj(midi_parser, start, end, select_inst=None, unit='tick'):
 
     new_midi_obj = new_parser.sym_music_container
     
-    # note related events only
+    # Keep any note overlapping the crop window and clip to the boundaries.
     for i, instrument in enumerate(new_midi_obj.instruments):
-        new_midi_obj.instruments[i].notes = [note for note in instrument.notes if start_tick <= note.start < end_tick and start_tick < note.end <= end_tick]
-        
-    # shift the note from the start_tick
-    for i, instrument in enumerate(new_midi_obj.instruments):
+        cropped_notes = []
         for note in instrument.notes:
-            note.start -= start_tick
-            note.end -= start_tick
+            if note.end <= start_tick or note.start >= end_tick:
+                continue
+            new_note = copy.deepcopy(note)
+            new_note.start = max(note.start, start_tick) - start_tick
+            new_note.end = min(note.end, end_tick) - start_tick
+            if new_note.end > new_note.start:
+                cropped_notes.append(new_note)
+        new_midi_obj.instruments[i].notes = cropped_notes
             
     # marker related events only
     selected_markers = [marker for marker in new_midi_obj.markers if start_tick <= marker.time < end_tick]

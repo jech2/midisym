@@ -460,66 +460,44 @@ def get_grid_quantized_time_mat(sym_obj: SymMusicContainer, add_chord_labels_to_
 def pianoroll2notes(piano_rolls, ticks_per_beat, pr_res=32, unit='Hz'):
     # piano roll is (T, 88)
     assert piano_rolls.shape[1] == 88, "currently, we only support the d3pia format"
-    # piano roll to midi
-    onset_times = [ -1 for _ in range(88) ]
-    offset_times = [ -1 for _ in range(88) ]
-    
     notes = []
+    n_steps = piano_rolls.shape[0]
     if unit == 'quantize_grid':
-        interval = int(ticks_per_beat/(pr_res / 4))
-        grid = np.arange(0, piano_rolls.shape[0] * interval, interval)
+        interval = int(ticks_per_beat / (pr_res / 4))
 
-    for t in range(piano_rolls.shape[0]):
-        for p in range(piano_rolls.shape[1]):
-            if piano_rolls[t, p] == 1:
-                if onset_times[p] == -1:
-                    onset_times[p] = t
-                elif offset_times[p] != -1:
-                    # seconds to ticks
-                    if unit == 'Hz':
-                        start = round(onset_times[p] * ticks_per_beat * 2 / pr_res)
-                        end = round((offset_times[p] + 1) * ticks_per_beat * 2 / pr_res)
-                    elif unit == 'quantize_grid':
-                        start = grid[onset_times[p]]
-                        end = grid[offset_times[p] + 1]
+    for p in range(piano_rolls.shape[1]):
+        # Treat both onset(1) and sustain(2) as active frames.
+        active = piano_rolls[:, p] > 0
+        if not np.any(active):
+            continue
 
-                    notes.append(Note(
-                        pitch=p+21, 
-                        velocity=64,
-                        start=start,
-                        end=end
-                    ))
-                    onset_times[p] = t
-                    offset_times[p] = -1
-                    # print(f'pitch: {p+21}, start: {start}, end: {end}')
-            elif piano_rolls[t, p] == 2:
-                offset_times[p] = t
-            elif piano_rolls[t, p] == 0:
-                if piano_rolls[t-1, p] == 1:
-                    offset_times[p] = t
-                if onset_times[p] != -1 and offset_times[p] != -1:
-                    if unit == 'Hz':
-                        start = round(onset_times[p] * ticks_per_beat * 2 / pr_res)
-                        end = round((offset_times[p] + 1) * ticks_per_beat * 2 / pr_res)
-                    elif unit == 'quantize_grid':
-                        if offset_times[p] + 1 >= len(grid):
-                            continue
-                        start = grid[onset_times[p]]
-                        end = grid[offset_times[p] + 1]
-                    
-                    notes.append(Note(
-                        pitch=p+21, 
-                        velocity=64,
-                        start=start,
-                        end=end
-                    ))
-                    onset_times[p] = -1
-                    offset_times[p] = -1
-                    # print(f'pitch: {p+21}, start: {start}, end: {end}')
-                        
-        inst = Instrument()    
-        inst.notes = notes
-        
+        # Find contiguous active runs [start_idx, end_idx_exclusive).
+        starts = np.where(active & ~np.r_[False, active[:-1]])[0]
+        ends_exclusive = np.where(active & ~np.r_[active[1:], False])[0] + 1
+
+        for start_idx, end_idx_exclusive in zip(starts, ends_exclusive):
+            if unit == 'Hz':
+                start = round(start_idx * ticks_per_beat * 2 / pr_res)
+                end = round(end_idx_exclusive * ticks_per_beat * 2 / pr_res)
+            elif unit == 'quantize_grid':
+                start = int(start_idx * interval)
+                end = int(end_idx_exclusive * interval)
+            else:
+                raise ValueError(f"Unsupported unit: {unit}")
+
+            if end <= start:
+                continue
+
+            notes.append(Note(
+                pitch=p + 21,
+                velocity=64,
+                start=start,
+                end=end
+            ))
+
+    inst = Instrument()
+    inst.notes = notes
+
     return notes, inst
     
 def pianoroll2midi(piano_rolls, leadsheet=None, arrangement=None, out_fp='output.mid', pr_res=32, unit='Hz'):
